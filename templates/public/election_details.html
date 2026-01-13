@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div style="margin-bottom: 2rem;">
+        <a href="{{ url_for('public.index') }}" style="color: var(--primary-color); text-decoration: none;">&larr; Back
+            to Home</a>
+    </div>
+
+    <div class="card" style="margin-bottom: 2rem;">
+        <div class="card" style="margin-bottom: 2rem;">
+            <h1 style="margin-top: 0; display: flex; justify-content: space-between; align-items: center;">
+                {{ election.title }}
+                <span class="badge {{ 'completed' if election.status == 'completed' else 'active' }}"
+                    style="font-size: 1rem; text-transform: uppercase;">
+                    {{ election.status }}
+                </span>
+            </h1>
+            <p style="color: var(--text-secondary); font-size: 1.1rem; line-height: 1.6;">{{ election.description }}</p>
+
+            <div
+                style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+                <div>
+                    <strong>Voting Period:</strong><br>
+                    {{ election.start_time.strftime('%Y-%m-%d %H:%M') }} - {{ election.end_time.strftime('%Y-%m-%d
+                    %H:%M')
+                    }}
+                </div>
+                <div>
+                    <strong>Nomination Period:</strong><br>
+                    {{ election.nomination_start.strftime('%Y-%m-%d %H:%M') }} - {{
+                    election.nomination_end.strftime('%Y-%m-%d %H:%M') }}
+                </div>
+                <div>
+                    <strong>Age Requirement:</strong><br>
+                    {% if election.config_age == 0 %}
+                    None
+                    {% elif election.config_age == 1 %}
+                    Optional (Min: {{ election.min_age }})
+                    {% else %}
+                    Required (Min: {{ election.min_age }})
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                {% if election.status == 'active' %}
+                <a href="{{ url_for('public.nominate', election_id=election.id) }}" class="btn btn-primary">Nominate</a>
+                <a href="{{ url_for('public.vote_login', election_id=election.id) }}" class="btn"
+                    style="border: 1px solid var(--primary-color); color: var(--primary-color);">Vote</a>
+                <a href="{{ url_for('public.request_access', election_id=election.id) }}"
+                    class="btn btn-outline-info">Request Inclusivity in rolls</a>
+                {% endif %}
+
+                {% if election.show_results and election.end_time <= now() %} <a
+                    href="{{ url_for('public.results', election_id=election.id) }}" class="btn btn-success"
+                    style="flex-grow: 1; text-align: center;">View Results</a>
+                    {% elif election.status == 'completed' %}
+                    <div
+                        style="background-color: var(--input-bg); padding: 0.5rem 1rem; text-align: center; border-radius: 5px; color: var(--text-secondary); flex-grow: 1;">
+                        Results Pending
+                    </div>
+                    {% endif %}
+            </div>
+        </div>
+
+        <h2 style="border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1.5rem;">
+            Approved
+            Nominees</h2>
+
+        {% if candidates %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem;">
+            {% for candidate in candidates %}
+            <div class="card" style="text-align: center;">
+                <div
+                    style="width: 100px; height: 100px; margin: 0 auto 1rem; border-radius: 50%; overflow: hidden; background-color: var(--input-bg); display: flex; align-items: center; justify-content: center;">
+                    {% if candidate.photo_path %}
+                    <img src="{{ url_for('static', filename=candidate.photo_path) }}" alt="{{ candidate.name }}"
+                        style="width: 100%; height: 100%; object-fit: cover;">
+                    {% else %}
+                    <span style="font-size: 2rem; color: var(--text-secondary);">{{ candidate.name[0]|upper }}</span>
+                    {% endif %}
+                </div>
+                <h3 style="margin: 0 0 0.5rem;">{{ candidate.name }}</h3>
+                {% if candidate.age %}
+                <p style="color: var(--text-secondary); margin: 0;">Age: {{ candidate.age }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="text-align: center; color: var(--text-secondary);">No nominees approved yet.</p>
+        {% endif %}
+    </div>
+    {% endblock %}

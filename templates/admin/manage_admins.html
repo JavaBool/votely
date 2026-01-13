@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="header" style="margin-bottom: 2rem;">
+        <h1>Manage Admins</h1>
+        <div style="display: flex; gap: 1rem;">
+            <a href="{{ url_for('admin.initiate_self_password_change') }}" class="btn btn-warning">Change My
+                Password</a>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <div class="grid" style="grid-template-columns: 1fr 2fr; gap: 2rem;">
+        <!-- Add Admin Form -->
+        <div class="card">
+            <h3>Add New Admin</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                A random password will be generated and emailed to the new admin.
+            </p>
+
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                <div class="form-group">
+                    {{ form.username.label }}
+                    {{ form.username(placeholder="Username") }}
+                </div>
+                <div class="form-group">
+                    {{ form.email.label }}
+                    {{ form.email(placeholder="Email Address") }}
+                </div>
+
+                <div class="form-group" style="margin: 1rem 0;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Permissions</label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                        {{ form.perm_manage_elections() }} Manage Elections
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                        {{ form.perm_manage_electors() }} Manage Electors
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                        {{ form.perm_manage_admins() }} Manage Admins
+                    </label>
+                </div>
+
+                {{ form.submit(class="btn btn-primary", style="width: 100%;") }}
+            </form>
+        </div>
+
+        <div class="card" style="margin-top: 2rem;">
+            <h3>System Performance</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                Configure global application settings. Changes apply immediately.
+            </p>
+            <form action="{{ url_for('admin.update_email_limit') }}" method="POST">
+                <div class="form-group">
+                    <label>Email Thread Limit (Max Workers)</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="number" name="thread_limit" class="form-control" value="{{ current_thread_limit }}"
+                            min="1" required>
+                        <button type="submit" class="btn btn-secondary">Update</button>
+                    </div>
+                    <small style="color: var(--text-secondary);">Default: 5</small>
+                </div>
+            </form>
+        </div>
+
+        <!-- Admin List -->
+        <div class="card">
+            <h3>Existing Admins</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role/Perms</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for admin in admins %}
+                    <tr>
+                        <td>{{ admin.username }}</td>
+                        <td>{{ admin.email }}</td>
+                        <td>
+                            {% if admin.is_super_admin %}
+                            <span class="badge" style="background: var(--primary-color);">Super Admin</span>
+                            {% else %}
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                                {% if admin.perm_manage_elections %}<div>• Elections</div>{% endif %}
+                                {% if admin.perm_manage_electors %}<div>• Electors</div>{% endif %}
+                                {% if admin.perm_manage_admins %}<div>• Admins</div>{% endif %}
+                                {% if not admin.perm_manage_elections and not admin.perm_manage_electors and not
+                                admin.perm_manage_admins %}
+                                <div>(No Perms)</div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="{{ url_for('admin.edit_admin', admin_id=admin.id) }}" class="btn btn-secondary"
+                                    style="font-size: 0.75rem; padding: 2px 6px;">Edit</a>
+                                {% if not admin.is_super_admin and admin.id != current_user.id %}
+                                <form action="{{ url_for('admin.delete_admin', admin_id=admin.id) }}" method="POST"
+                                    onsubmit="return confirm('Delete this admin?');">
+                                    <button type="submit" class="btn btn-danger"
+                                        style="font-size: 0.75rem; padding: 2px 6px;">Delete</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <div style="margin-bottom: 2rem;">
+        <a href="{{ url_for('admin.manage_election', election_id=elector.election_id) }}"
+            style="color: var(--primary-color); text-decoration: none;">&larr; Back to Election</a>
+    </div>
+
+    <div class="card">
+        <h1 style="text-align: center; margin-bottom: 2rem;">Edit Elector</h1>
+
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <div class="form-group">
+                <label for="name">Name</label>
+                {{ form.name(id="name", placeholder="Enter full name") }}
+                {% for error in form.name.errors %}
+                <span class="error-message">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            {% if elector.election.allow_phone_voting %}
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                {{ form.phone(id="phone", placeholder="Enter phone number (+91...)") }}
+                {% for error in form.phone.errors %}
+                <span class="error-message">{{ error }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                {{ form.email(id="email", placeholder="Enter email address") }}
+                {% for error in form.email.errors %}
+                <span class="error-message">{{ error }}</span>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Update Elector</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

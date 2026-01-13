@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6" style="margin: 0 auto; max-width: 400px; padding-top: 50px;">
+        <div class="card">
+            <h2 style="text-align: center; margin-bottom: 1.5rem;">Verify Email Change</h2>
+            <p style="text-align: center; color: var(--text-secondary);">
+                An OTP has been sent to your <strong>current</strong> email address. Please enter it below to confirm
+                the change to <strong>{{ session.get('update_email_new') }}</strong>.
+            </p>
+
+            <form method="POST">
+                <div class="form-group">
+                    <label>One-Time Password</label>
+                    <input type="text" name="otp" required placeholder="Enter OTP"
+                        style="text-align: center; letter-spacing: 5px; font-size: 1.2rem;">
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Verify & Update</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

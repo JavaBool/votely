@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6" style="margin: 0 auto; max-width: 500px; padding-top: 50px;">
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin: 0;">Edit Admin</h2>
+                <a href="{{ url_for('admin.manage_admins') }}" class="btn btn-secondary"
+                    style="font-size: 0.8rem;">Cancel</a>
+            </div>
+
+            <p><strong>Username:</strong> {{ admin.username }}</p>
+            {% if admin.is_super_admin %}
+            <p><span class="badge" style="background: var(--primary-color); color: white;">Super Admin</span> (Immune to
+                Deletion)</p>
+            {% endif %}
+
+            <form method="POST">
+                {{ form.hidden_tag() }}
+
+                <div class="form-group">
+                    {{ form.email.label }}
+                    {{ form.email(placeholder="Email Update") }}
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
+
+                <h4>Permissions</h4>
+                <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    {% if admin.is_super_admin %}
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">Super Admin has full permissions
+                        (Locked).</p>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; opacity: 0.6; pointer-events: none;">
+                        <input type="checkbox" checked disabled> Manage Elections
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; opacity: 0.6; pointer-events: none;">
+                        <input type="checkbox" checked disabled> Manage Electors
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; opacity: 0.6; pointer-events: none;">
+                        <input type="checkbox" checked disabled> Manage Admins
+                    </label>
+                    {% else %}
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        {{ form.perm_manage_elections() }} Managing Elections
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        {{ form.perm_manage_electors() }} Managing Electors
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        {{ form.perm_manage_admins() }} Managing Admins
+                    </label>
+                    {% endif %}
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1.5rem 0;">
+
+                <div class="form-group">
+                    <label
+                        style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--danger-color);">
+                        {{ form.reset_password() }} Reset Password (Generate New & Email)
+                    </label>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    {{ form.submit(class="btn btn-primary", style="width: 100%;") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

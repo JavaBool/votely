@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin: 4rem auto;">
+    <div class="card" style="border-top: 5px solid #dc3545; background-color: #fff5f5;">
+        <h2 style="text-align: center; margin-bottom: 1.5rem; color: #dc3545;">{{ title }}</h2>
+
+        <div class="alert alert-danger" style="margin-bottom: 2rem; border-left: 5px solid #b02a37;">
+            <h4 style="margin-top: 0; color: #721c24;">⚠️ DESTRUCTIVE ACTION WARNING</h4>
+            <p style="margin-bottom: 1rem;">
+                You are about to <strong>invalidate the Secret Codes for ALL electors</strong> in this election.
+            </p>
+            <ul style="margin: 0.5rem 0 0.5rem 1.5rem; color: #721c24;">
+                <li>Existing codes will <strong>immediately stop working</strong>.</li>
+                <li>Voters will not be able to log in until you distribute new codes.</li>
+                <li>This action <strong>cannot be undone</strong>.</li>
+            </ul>
+        </div>
+
+        <p style="text-align: center; margin-bottom: 2rem; color: var(--text-secondary);">
+            To confirm this destructive action, please enter the OTP sent to your email.
+        </p>
+
+        <form method="POST">
+            <div class="form-group">
+                <label>Enter OTP</label>
+                <input type="text" name="otp" class="form-control" placeholder="123456" required
+                    style="text-align: center; letter-spacing: 0.5rem; font-size: 1.5rem;">
+            </div>
+
+            <button type="submit" class="btn btn-danger" style="width: 100%; margin-top: 1rem;">
+                I Understand - Reset ALL Codes
+            </button>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn"
+                style="width: 100%; margin-top: 0.5rem; text-align: center; border: 1px solid var(--border-color); display: block; box-sizing: border-box;">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,396 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Inherit global body background from style.css */
+
+    .login-card {
+        background-color: var(--card-bg);
+        /* Dark Gray */
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        /* Standard radius */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        color: var(--text-color);
+    }
+
+    .login-header {
+        border-bottom: 1px solid var(--border-color);
+        padding: 2rem 2rem 1rem;
+        text-align: center;
+    }
+
+    .login-header h2 {
+        color: var(--primary-color);
+        font-weight: 700;
+    }
+
+    /* Tabs */
+    .nav-tabs {
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .nav-tabs .nav-link {
+        color: var(--text-secondary);
+        border: none;
+        background: transparent;
+        padding: 1rem 1.5rem;
+        font-weight: 500;
+    }
+
+    .nav-tabs .nav-link:hover {
+        color: var(--text-color);
+    }
+
+    .nav-tabs .nav-link.active {
+        color: var(--primary-color);
+        background: transparent;
+        border-bottom: 2px solid var(--primary-color);
+    }
+
+    /* Inputs */
+    .form-floating>.form-control {
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-color);
+    }
+
+    .form-floating>.form-control:focus {
+        background-color: var(--input-bg);
+        border-color: var(--primary-color);
+        color: var(--text-color);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    .form-floating>label {
+        color: var(--text-secondary);
+    }
+
+    /* Ensure autofill doesn't break dark mode */
+    .form-floating>.form-control:-webkit-autofill {
+        -webkit-text-fill-color: var(--text-color);
+        -webkit-box-shadow: 0 0 0px 1000px var(--input-bg) inset;
+        transition: background-color 5000s ease-in-out 0s;
+    }
+
+    .btn-login {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 1rem;
+        font-weight: 600;
+        border-radius: 0.375rem;
+        border: none;
+        transition: filter 0.2s;
+    }
+
+    .btn-login:hover {
+        filter: brightness(1.1);
+    }
+
+    .otp-input {
+        letter-spacing: 0.5em;
+        font-size: 1.25rem;
+        text-align: center;
+        font-weight: bold;
+    }
+</style>
+
+<div class="auth-container"> <!-- Use global auth container for sizing -->
+    <div class="login-card">
+        <div class="login-header">
+            <h2 class="mb-2">Voter Login</h2>
+            <p class="mb-0 text-secondary small text-uppercase" style="color: var(--text-secondary);">{{ election.title
+                }}</p>
+        </div>
+
+        <div class="card-body p-4 pt-3" style="margin-left: 20px; margin-right: 20px;">
+            <div id="alert-container"></div>
+
+            <!-- Tabs -->
+
+
+            <div class="tab-content">
+
+                <!-- PHONE LOGIN -->
+                {% if election.allow_phone_voting %}
+                <div class="tab-pane fade show active" id="phone-login" role="tabpanel">
+                    <div id="step-phone">
+                        <div class="form-floating mb-2">
+                            <label for="phoneNumber">Phone Number</label>
+                            <input type="tel" class="form-control" style="margin-bottom: 5px" id="phoneNumber"
+                                placeholder="+91 98765 43210" required>
+                        </div>
+
+                        <div id="recaptcha-container" class="mb-4 d-flex justify-content-center"
+                            style="min-height: 78px;"></div>
+                        <button id="send-otp-btn" style="margin-bottom: 20px;" class="btn btn-login w-100 py-3"
+                            onclick="sendOTP()">Send Code</button>
+                    </div>
+
+                    <div id="step-otp" style="display: none;">
+                        <div class="text-center mb-5">
+                            <h5 class="fw-bold">Verification</h5>
+                            <p class="text-muted small">Code sent to <span id="display-phone"
+                                    class="fw-bold text-dark"></span></p>
+                        </div>
+
+                        <div class="form-floating mb-5">
+                            <label for="otpInput" class="text-center w-100">Enter Code</label>
+                            <input type="text" class="form-control otp-input" id="otpInput" placeholder="123456"
+                                maxlength="6">
+                        </div>
+
+                        <button id="verify-btn" class="btn btn-success btn-login w-100 py-3"
+                            onclick="verifyOTP()">Verify & Login</button>
+                        <button class="btn btn-link w-100 mt-4 text-decoration-none text-muted small"
+                            onclick="retryLogin()" style="margin-top: 20px;">Change Number</button>
+                    </div>
+                </div>
+                {% endif %}
+                OR
+                <!-- EMAIL LOGIN -->
+                <div class="tab-pane fade {% if not election.allow_phone_voting %}show active{% endif %}"
+                    id="email-login" role="tabpanel">
+                    <form action="{{ url_for('public.vote_login', election_id=election.id) }}" method="POST">
+                        <div id="step-email-send" style="margin-top: 20px;">
+                            <div class="form-floating mb-5">
+                                <label for="emailInput">Email Address</label>
+                                <input type="email" name="email" class="form-control" style="margin-bottom: 20px"
+                                    id="emailInput" placeholder="name@example.com" required>
+                            </div>
+
+                            <button type="button" style="margin-bottom: 20px" class="btn btn-login w-100 py-3"
+                                onclick="sendEmailOTP()">Send
+                                Code</button>
+                        </div>
+
+                        <div id="step-email-verify" style="display: none;">
+                            <div class="text-center mb-5">
+                                <h5 class="fw-bold">Email Verification</h5>
+                                <p class="text-muted small">Check your inbox/spam folder.</p>
+                            </div>
+
+                            <div class="form-floating mb-5">
+                                <input type="text" name="otp" class="form-control otp-input" id="emailOtpInput"
+                                    placeholder="123456" maxlength="6">
+                                <label for="emailOtpInput" class="text-center w-100">Enter 6-Digit Code</label>
+                            </div>
+                            <button type="submit" class="btn btn-success btn-login w-100 py-3">Verify & Access
+                                Ballot</button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+
+            <!-- Hidden Form to submit Phone ID Token -->
+            <form id="login-form" action="{{ url_for('public.vote_login', election_id=election.id) }}" method="POST"
+                style="display: none;">
+                <input type="hidden" name="idToken" id="idToken">
+            </form>
+
+        </div>
+        <div class="card-footer text-center py-4 border-0 bg-transparent"
+            style="margin-left: 20px; margin-right: 20px;">
+            <a href="{{ url_for('public.index') }}" class="btn btn-secondary" style="margin-bottom: 20px;"><i
+                    class="bi bi-arrow-left me-1"></i> Back to Election Home</a>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+
+<script>
+    async function sendEmailOTP() {
+        const email = document.getElementById('emailInput').value;
+        if (!email) {
+            alert("Please enter an email address.");
+            return;
+        }
+        const btn = document.querySelector('#step-email-send button');
+        btn.disabled = true;
+        btn.innerText = "Sending...";
+
+        try {
+            const formData = new FormData();
+            formData.append('email', email);
+
+            const response = await fetch("{{ url_for('public.send_login_otp', election_id=election.id) }}", {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                document.getElementById('step-email-verify').style.display = 'block';
+                document.getElementById('emailInput').readOnly = true;
+                btn.style.display = 'none';
+            } else {
+                alert(result.message);
+                btn.disabled = false;
+                btn.innerText = "Send OTP to Email";
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("Failed to send OTP. Try again.");
+            btn.disabled = false;
+            btn.innerText = "Send OTP to Email";
+        }
+    }
+</script>
+
+<!-- Firebase SDK -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {{ config['FIREBASE_CONFIG'] | tojson }};
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    window.auth = auth; // Expose for functions
+    window.RecaptchaVerifier = RecaptchaVerifier;
+    window.signInWithPhoneNumber = signInWithPhoneNumber;
+
+    console.log("Firebase initialized");
+
+    // Setup Recaptcha
+    window.initRecaptcha = function () {
+        if (!window.recaptchaVerifier) {
+            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                'size': 'normal',
+                'callback': (response) => {
+                    // reCAPTCHA solved, allow signInWithPhoneNumber.
+                    // console.log("Recaptcha solved");
+                },
+                'expired-callback': () => {
+                    // Response expired. Ask user to solve reCAPTCHA again.
+                    console.log("Recaptcha expired");
+                }
+            });
+            window.recaptchaVerifier.render();
+        }
+    }
+
+    // init immediately
+    window.initRecaptcha();
+</script>
+
+<script>
+    let confirmationResult = null;
+
+    function showAlert(message, type = 'danger') {
+        const container = document.getElementById('alert-container');
+        container.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>`;
+    }
+
+    function sendOTP() {
+        const phoneNumber = document.getElementById('phoneNumber').value;
+        if (!phoneNumber) {
+            showAlert("Please enter a phone number.");
+            return;
+        }
+
+        const appVerifier = window.recaptchaVerifier;
+        const btn = document.getElementById('send-otp-btn');
+        btn.disabled = true;
+        btn.innerText = "Checking...";
+
+        // 1. Check if phone exists in backend
+        fetch("{{ url_for('public.check_phone', election_id=election.id) }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: phoneNumber })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.exists) {
+                    showAlert(data.message);
+                    btn.disabled = false;
+                    btn.innerText = "Send One-Time Password";
+                    return; // Stop here
+                }
+                if (data.voted) {
+                    showAlert(data.message, 'warning');
+                    btn.disabled = false;
+                    btn.innerText = "Send One-Time Password";
+                    return;
+                }
+
+                // 2. If exists and valid, proceed to Firebase
+                btn.innerText = "Sending OTP...";
+                window.signInWithPhoneNumber(window.auth, phoneNumber, appVerifier)
+                    .then((result) => {
+                        // SMS sent. Prompt user to type the code from the message, then sign the
+                        // user in with confirmationResult.confirm(code).
+                        window.confirmationResult = result;
+                        confirmationResult = result;
+
+                        // Switch UI
+                        document.getElementById('step-phone').style.display = 'none';
+                        document.getElementById('step-otp').style.display = 'block';
+                        document.getElementById('display-phone').innerText = phoneNumber;
+                        showAlert("OTP Sent Successfully", "success");
+                    }).catch((error) => {
+                        // Error; SMS not sent
+                        console.error(error);
+                        showAlert(error.message);
+                        document.getElementById('send-otp-btn').disabled = false;
+                        document.getElementById('send-otp-btn').innerText = "Send OTP";
+
+                        // Reset recaptcha
+                        if (window.recaptchaVerifier) {
+                            window.recaptchaVerifier.clear();
+                            window.recaptchaVerifier = null;
+                            window.initRecaptcha(); // Re-init
+                        }
+                    });
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                showAlert("Failed to verify phone number.");
+                btn.disabled = false;
+                btn.innerText = "Send One-Time Password";
+            });
+    }
+
+    function verifyOTP() {
+        const code = document.getElementById('otpInput').value;
+        if (!code) {
+            showAlert("Please enter the OTP.");
+            return;
+        }
+
+        document.getElementById('verify-btn').disabled = true;
+        document.getElementById('verify-btn').innerText = "Verifying...";
+
+        confirmationResult.confirm(code).then((result) => {
+            // User signed in successfully.
+            const user = result.user;
+
+            // Get ID Token
+            user.getIdToken().then((idToken) => {
+                // Determine if we need to send to backend
+                document.getElementById('idToken').value = idToken;
+                document.getElementById('login-form').submit();
+            });
+
+        }).catch((error) => {
+            // User couldn't sign in (bad verification code?)
+            console.error(error);
+            showAlert("Invalid OTP or Error: " + error.message);
+            document.getElementById('verify-btn').disabled = false;
+            document.getElementById('verify-btn').innerText = "Verify & Login";
+        });
+    }
+
+    function retryLogin() {
+        location.reload();
+    }
+</script>
+{% endblock %}

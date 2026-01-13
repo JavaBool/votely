@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="card">
+        <h2 style="margin-top: 0; text-align: center;">Enter OTP</h2>
+        <p style="text-align: center; color: #6b7280; font-size: 0.875rem;">An OTP has been sent to <strong>{{ email
+                }}</strong>.</p>
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="otp">One-Time Password</label>
+                <input type="text" id="otp" name="otp" required placeholder="123456"
+                    style="text-align: center; letter-spacing: 0.25rem;">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Verify & Vote</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

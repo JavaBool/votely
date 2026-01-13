@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 800px;">
+    <h1 style="text-align: center;">Official Ballot</h1>
+    <h2 style="text-align: center; color: var(--primary-color); margin-top: 0;">{{ election.title }}</h2>
+    <p style="text-align: center; margin-bottom: 2rem;">Please select one candidate securely.</p>
+
+    <form method="POST">
+        <div
+            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            {% for candidate in candidates %}
+            <label class="card"
+                style="cursor: pointer; position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; border: 2px solid transparent; transition: all 0.2s;">
+                <input type="radio" name="candidate_id" value="{{ candidate.id }}"
+                    style="position: absolute; top: 1rem; left: 1rem;" required>
+                {% if candidate.photo_path %}
+                <img src="{{ url_for('static', filename=candidate.photo_path) }}" alt="{{ candidate.name }}"
+                    style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; margin-bottom: 1rem; border: 2px solid var(--border-color);">
+                {% else %}
+                <div
+                    style="width: 100px; height: 100px; background-color: #f3f4f6; border-radius: 50%; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #9ca3af;">
+                    {{ candidate.name[0] }}
+                </div>
+                {% endif %}
+
+                <h3 style="margin: 0; font-size: 1.125rem;">{{ candidate.name }}</h3>
+                {% if candidate.age %}
+                <p style="margin: 0.25rem 0 0; color: #6b7280; font-size: 0.875rem;">Age: {{ candidate.age }}</p>
+                {% endif %}
+            </label>
+            {% endfor %}
+
+            {% if nota %}
+            <label class="card"
+                style="cursor: pointer; position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; border: 2px solid var(--danger-color); transition: all 0.2s; background-color: rgba(239, 68, 68, 0.05);">
+                <input type="radio" name="candidate_id" value="{{ nota.id }}"
+                    style="position: absolute; top: 1rem; left: 1rem;" required>
+
+                <div
+                    style="width: 100px; height: 100px; background-color: var(--danger-color); border-radius: 50%; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; font-weight: bold;">
+                    NOTA
+                </div>
+
+                <h3 style="margin: 0; font-size: 1.125rem; color: var(--danger-color);">None of the Above</h3>
+                <p style="margin: 0.25rem 0 0; color: var(--text-secondary); font-size: 0.875rem;">Reject all candidates
+                </p>
+            </label>
+            {% endif %}
+        </div>
+
+        <div style="text-align: center;">
+            <button type="submit" class="btn btn-primary" style="font-size: 1.25rem; padding: 0.75rem 2rem;">Cast
+                Vote</button>
+        </div>
+    </form>
+</div>
+
+<style>
+    label.card:hover {
+        border-color: var(--primary-color);
+        background-color: #f5f3ff;
+    }
+
+    input[type="radio"]:checked+img,
+    input[type="radio"]:checked~h3 {
+        color: var(--primary-color);
+    }
+
+    label.card:has(input:checked) {
+        border-color: var(--primary-color);
+        background-color: #e0e7ff;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="card p-4">
+        <h2 class="text-center mb-4">Request Access</h2>
+        <p class="text-center text-muted mb-4">Join the voter list for <strong>{{ election.title }}</strong></p>
+
+        <form method="POST">
+            <div class="form-floating mb-3">
+                <label for="nameInput">Full Name</label>
+                <input type="text" name="name" class="form-control" id="nameInput" placeholder="John Doe" required>
+            </div>
+
+            <div class="form-floating mb-3">
+                <label for="emailInput">Email Address</label>
+                <input type="email" name="email" class="form-control" id="emailInput" placeholder="name@example.com"
+                    style="margin-bottom: 20px;">
+            </div>
+
+            {% if election.allow_phone_voting %}
+            <div class="form-floating mb-4">
+                <label for="phoneInput">Phone Number (Optional)</label>
+                <input type="tel" name="phone" class="form-control" id="phoneInput" placeholder="+919999999999"
+                    style="margin-bottom: 20px;">
+            </div>
+            {% endif %}
+
+            <div class="alert alert-info small">
+                <i class="bi bi-info-circle me-1"></i> Your request will be reviewed by an administrator. You will be
+                notified via email once approved.
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2 mb-3">Submit Request</button>
+            <a href="{{ url_for('public.election_details', election_id=election.id) }}"
+                class="btn btn-secondary w-100">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

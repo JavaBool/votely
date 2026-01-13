@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div
+    style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center;">
+    <h1 style="font-size: 6rem; margin: 0; color: var(--primary-color);">404</h1>
+    <h2 style="margin-top: 0; margin-bottom: 1rem;">Page Not Found</h2>
+    <p style="color: var(--text-secondary); max-width: 400px; margin-bottom: 2rem;">
+        The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
+    </p>
+    <a href="{{ url_for('public.index') }}" class="btn btn-primary" style="padding: 0.75rem 2rem; font-size: 1.1rem;">
+        Go to Home
+    </a>
+</div>
+{% endblock %}

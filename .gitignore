@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+firebase_credentials.json
+credentials.json
+token.json
+email_config.json
+instance/
+.pytest_cache/
+.DS_Store

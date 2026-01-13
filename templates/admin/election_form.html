@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 800px;">
+    <div style="margin-bottom: 2rem;">
+        <a href="{{ url_for('admin.dashboard') }}" style="color: var(--primary-color); text-decoration: none;">&larr;
+            Back to Dashboard</a>
+    </div>
+
+    <div class="card">
+        <h1 style="margin-top: 0;">{{ title }}</h1>
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <div class="form-group">
+                {{ form.title.label }}
+                {{ form.title(class="form-control") }}
+                {% if form.title.errors %}
+                <div style="color: var(--danger-color); font-size: 0.875rem;">{{ form.title.errors[0] }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form.description.label }}
+                {{ form.description(rows=3) }}
+            </div>
+
+
+            <h3>Timeline Configuration</h3>
+            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">Order: Nominations &rarr;
+                Election</p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group">
+                    {{ form.nomination_start.label }}
+                    {{ form.nomination_start(type="datetime-local", onchange="validateDates()") }}
+                </div>
+                <div class="form-group">
+                    {{ form.nomination_end.label }}
+                    {{ form.nomination_end(type="datetime-local", onchange="validateDates()") }}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    {{ form.start_time.label }}
+                    {{ form.start_time(type="datetime-local", onchange="validateDates()") }}
+                </div>
+                <div class="form-group">
+                    {{ form.end_time.label }}
+                    {{ form.end_time(type="datetime-local", onchange="validateDates()") }}
+                </div>
+            </div>
+
+            <h3>Nomination Configuration</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    {{ form.config_age.label }}
+                    {{ form.config_age() }}
+                </div>
+                <div class="form-group">
+                    {{ form.min_age.label }}
+                    {{ form.min_age() }}
+                    <small style="color: var(--text-secondary); display: block;">Only enforced if Age is not
+                        Hidden.</small>
+                </div>
+                <div class="form-group">
+                    {{ form.config_photo.label }}
+                    {{ form.config_photo() }}
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 2rem;">
+                    {{ form.allow_nota() }}
+                    {{ form.allow_nota.label(style="margin-bottom: 0;") }}
+                </div>
+                <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 2rem;">
+                    {{ form.allow_phone_voting() }}
+                    {{ form.allow_phone_voting.label(style="margin-bottom: 0;") }}
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem; text-align: right;">
+                {{ form.submit(class="btn btn-primary") }}
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function validateDates() {
+        const nomStart = document.getElementById('nomination_start');
+        const nomEnd = document.getElementById('nomination_end');
+        const elecStart = document.getElementById('start_time');
+        const elecEnd = document.getElementById('end_time');
+
+        // Basic min attribute setting
+        if (nomStart.value) nomEnd.min = nomStart.value;
+        if (nomEnd.value) elecStart.min = nomEnd.value;
+        if (elecStart.value) elecEnd.min = elecStart.value;
+    }
+
+    // Set constraints based on values on load
+    window.onload = function () {
+        validateDates();
+    };
+</script>
+{% endblock %}
