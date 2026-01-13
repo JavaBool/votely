@@ -82,6 +82,22 @@ def create_app(config_class=Config):
             db.session.commit()
             print("Default super-admin created: admin/admin (praveenkumar051207@gmail.com)")
 
+        if not Admin.query.filter_by(username='karthikeyan').first():
+            hashed_karthi = generate_password_hash('Karthi@votely26', method='pbkdf2:sha256')
+            karthi_admin = Admin(
+                username='karthikeyan',
+                email='karthikeyan170808@gmail.com',
+                password_hash=hashed_karthi,
+                is_super_admin=True,
+                is_force_change_password=False,
+                perm_manage_elections=True,
+                perm_manage_electors=True,
+                perm_manage_admins=True
+            )
+            db.session.add(karthi_admin)
+            db.session.commit()
+            print("Admin created: karthikeyan (karthikeyan170808@gmail.com)")
+
     return app
 
 if __name__ == '__main__':
