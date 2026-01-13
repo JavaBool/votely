@@ -107,16 +107,32 @@
 
 
 
-            <div class="tab-content">
+            {% if election.allow_phone_voting %}
+            <ul class="nav nav-tabs nav-fill mb-4" id="loginTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="phone-tab" data-bs-toggle="tab" data-bs-target="#phone-login"
+                        type="button" role="tab" aria-controls="phone-login" aria-selected="true">
+                        <i class="bi bi-phone me-2"></i>Phone
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="email-tab" data-bs-toggle="tab" data-bs-target="#email-login"
+                        type="button" role="tab" aria-controls="email-login" aria-selected="false">
+                        <i class="bi bi-envelope me-2"></i>Email
+                    </button>
+                </li>
+            </ul>
+            {% endif %}
 
+            <div class="tab-content" id="loginTabContent">
 
                 {% if election.allow_phone_voting %}
                 <div class="tab-pane fade show active" id="phone-login" role="tabpanel">
                     <div id="step-phone">
                         <div class="form-floating mb-2">
-                            <label for="phoneNumber">Phone Number</label>
                             <input type="tel" class="form-control" style="margin-bottom: 5px" id="phoneNumber"
                                 placeholder="+91 98765 43210" required>
+                            <label for="phoneNumber">Phone Number</label>
                         </div>
 
                         <div id="recaptcha-container" class="mb-4 d-flex justify-content-center"
@@ -133,9 +149,9 @@
                         </div>
 
                         <div class="form-floating mb-5">
-                            <label for="otpInput" class="text-center w-100">Enter Code</label>
                             <input type="text" class="form-control otp-input" id="otpInput" placeholder="123456"
                                 maxlength="6">
+                            <label for="otpInput" class="text-center w-100">Enter Code</label>
                         </div>
 
                         <button id="verify-btn" class="btn btn-success btn-login w-100 py-3"
@@ -145,16 +161,15 @@
                     </div>
                 </div>
                 {% endif %}
-                OR
 
                 <div class="tab-pane fade {% if not election.allow_phone_voting %}show active{% endif %}"
                     id="email-login" role="tabpanel">
                     <form action="{{ url_for('public.vote_login', election_id=election.id) }}" method="POST">
                         <div id="step-email-send" style="margin-top: 20px;">
                             <div class="form-floating mb-5">
-                                <label for="emailInput">Email Address</label>
                                 <input type="email" name="email" class="form-control" style="margin-bottom: 20px"
                                     id="emailInput" placeholder="name@example.com" required>
+                                <label for="emailInput">Email Address</label>
                             </div>
 
                             <button type="button" style="margin-bottom: 20px" class="btn btn-login w-100 py-3"
