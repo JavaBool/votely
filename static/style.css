@@ -1,30 +1,44 @@
 :root {
     --primary-color: #6366f1;
-
     --primary-hover: #818cf8;
-
     --bg-color: #111827;
-
     --text-color: #f9fafb;
-
     --text-secondary: #9ca3af;
-
     --card-bg: #1f2937;
-
     --border-color: #374151;
-
     --input-bg: #374151;
 
+    /* Fixed Header/Footer Colors (Always Dark) */
+    --fixed-primary: #6366f1;
+    --nav-bg: #1f2937;
+    --nav-text: #f9fafb;
+    --nav-border: #374151;
+    --footer-bg: #111827;
+    --footer-text: #9ca3af;
+    --footer-border: #374151;
     --danger-color: #f87171;
-
     --success-color: #34d399;
+    --bg-gradient: linear-gradient(135deg, #111827 0%, #1e1b4b 100%);
+}
 
+[data-bs-theme="light"] {
+    --primary-color: #4f46e5;
+    --primary-hover: #4338ca;
+    --bg-color: #ffffff;
+    --text-color: #111827;
+    --text-secondary: #4b5563;
+    --card-bg: #ffffff;
+    --border-color: #e5e7eb;
+    --input-bg: #ffffff;
+    --danger-color: #ef4444;
+    --success-color: #10b981;
+    --bg-gradient: none;
 }
 
 body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background-color: var(--bg-color);
-    background: linear-gradient(135deg, #111827 0%, #1e1b4b 100%);
+    background-image: var(--bg-gradient);
     color: var(--text-color);
     margin: 0;
     padding: 0;
@@ -39,11 +53,14 @@ body {
 }
 
 nav {
-    background-color: var(--card-bg);
-    border-bottom: 1px solid var(--border-color);
+    background-color: var(--nav-bg);
+    border-bottom: 1px solid var(--nav-border);
     padding: 1rem 0;
     margin-bottom: 2rem;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
 
 .nav-content {
@@ -55,20 +72,36 @@ nav {
 .nav-brand {
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--primary-color);
+    color: var(--fixed-primary);
     text-decoration: none;
 }
 
 .nav-links a {
-    color: var(--text-color);
+    color: var(--nav-text);
     text-decoration: none;
     margin-left: 1.5rem;
     font-weight: 500;
     transition: color 0.15s;
 }
 
+.site-footer {
+    text-align: center;
+    padding: 2rem 0;
+    color: var(--footer-text);
+    background-color: var(--footer-bg);
+    border-top: 1px solid var(--footer-border);
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.site-footer h5 {
+    color: var(--fixed-primary);
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
 .nav-links a:hover {
-    color: var(--primary-color);
+    color: var(--fixed-primary);
 }
 
 .card {

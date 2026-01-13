@@ -1,4 +1,4 @@
 .forgotpassword {
     text-decoration: none;
-    color: white;
+    color: var(--text-color);
 }
