@@ -27,10 +27,6 @@
                 <button type="submit" class="btn btn-success">Publish Election</button>
             </form>
             {% elif election.status == 'active' %}
-            <form action="{{ url_for('admin.end_election', election_id=election.id) }}" method="POST"
-                onsubmit="return confirm('Are you sure you want to END this election now? Voting will stop immediately.');">
-                <button type="submit" class="btn btn-warning">End Election Now (Prematurely)</button>
-            </form>
             {% elif election.status == 'completed' %}
             {% if not election.show_results %}
             <form action="{{ url_for('admin.initiate_release_results', election_id=election.id) }}" method="POST"
@@ -413,6 +409,13 @@
                         });
                     }
                 });
+
+                function openDurationModal(title, actionUrl, defaultMinutes) {
+                    document.getElementById('durationModalLabel').innerText = title;
+                    document.getElementById('durationForm').action = actionUrl;
+                    document.getElementById('durationInput').value = defaultMinutes;
+                    new bootstrap.Modal(document.getElementById('durationModal')).show();
+                }
             </script>
         </div>
     </div>
