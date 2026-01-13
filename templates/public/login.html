@@ -6,10 +6,8 @@
 
     .login-card {
         background-color: var(--card-bg);
-        /* Dark Gray */
         border: 1px solid var(--border-color);
         border-radius: 0.5rem;
-        /* Standard radius */
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
         color: var(--text-color);
     }
@@ -106,12 +104,12 @@
         <div class="card-body p-4 pt-3" style="margin-left: 20px; margin-right: 20px;">
             <div id="alert-container"></div>
 
-            <!-- Tabs -->
+
 
 
             <div class="tab-content">
 
-                <!-- PHONE LOGIN -->
+
                 {% if election.allow_phone_voting %}
                 <div class="tab-pane fade show active" id="phone-login" role="tabpanel">
                     <div id="step-phone">
@@ -148,7 +146,7 @@
                 </div>
                 {% endif %}
                 OR
-                <!-- EMAIL LOGIN -->
+
                 <div class="tab-pane fade {% if not election.allow_phone_voting %}show active{% endif %}"
                     id="email-login" role="tabpanel">
                     <form action="{{ url_for('public.vote_login', election_id=election.id) }}" method="POST">
@@ -183,7 +181,7 @@
 
             </div>
 
-            <!-- Hidden Form to submit Phone ID Token -->
+
             <form id="login-form" action="{{ url_for('public.vote_login', election_id=election.id) }}" method="POST"
                 style="display: none;">
                 <input type="hidden" name="idToken" id="idToken">
@@ -239,34 +237,30 @@
     }
 </script>
 
-<!-- Firebase SDK -->
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {{ config['FIREBASE_CONFIG'] | tojson }};
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    window.auth = auth; // Expose for functions
+    window.auth = auth;
     window.RecaptchaVerifier = RecaptchaVerifier;
     window.signInWithPhoneNumber = signInWithPhoneNumber;
 
     console.log("Firebase initialized");
 
-    // Setup Recaptcha
+
     window.initRecaptcha = function () {
         if (!window.recaptchaVerifier) {
             window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
                 'size': 'normal',
                 'callback': (response) => {
-                    // reCAPTCHA solved, allow signInWithPhoneNumber.
-                    // console.log("Recaptcha solved");
                 },
                 'expired-callback': () => {
-                    // Response expired. Ask user to solve reCAPTCHA again.
                     console.log("Recaptcha expired");
                 }
             });
@@ -274,7 +268,6 @@
         }
     }
 
-    // init immediately
     window.initRecaptcha();
 </script>
 
@@ -322,32 +315,27 @@
                     return;
                 }
 
-                // 2. If exists and valid, proceed to Firebase
                 btn.innerText = "Sending OTP...";
                 window.signInWithPhoneNumber(window.auth, phoneNumber, appVerifier)
                     .then((result) => {
-                        // SMS sent. Prompt user to type the code from the message, then sign the
-                        // user in with confirmationResult.confirm(code).
                         window.confirmationResult = result;
                         confirmationResult = result;
 
-                        // Switch UI
                         document.getElementById('step-phone').style.display = 'none';
                         document.getElementById('step-otp').style.display = 'block';
                         document.getElementById('display-phone').innerText = phoneNumber;
                         showAlert("OTP Sent Successfully", "success");
                     }).catch((error) => {
-                        // Error; SMS not sent
                         console.error(error);
                         showAlert(error.message);
                         document.getElementById('send-otp-btn').disabled = false;
                         document.getElementById('send-otp-btn').innerText = "Send OTP";
 
-                        // Reset recaptcha
+
                         if (window.recaptchaVerifier) {
                             window.recaptchaVerifier.clear();
                             window.recaptchaVerifier = null;
-                            window.initRecaptcha(); // Re-init
+                            window.initRecaptcha();
                         }
                     });
             })
@@ -370,18 +358,15 @@
         document.getElementById('verify-btn').innerText = "Verifying...";
 
         confirmationResult.confirm(code).then((result) => {
-            // User signed in successfully.
             const user = result.user;
 
-            // Get ID Token
             user.getIdToken().then((idToken) => {
-                // Determine if we need to send to backend
                 document.getElementById('idToken').value = idToken;
                 document.getElementById('login-form').submit();
             });
 
         }).catch((error) => {
-            // User couldn't sign in (bad verification code?)
+
             console.error(error);
             showAlert("Invalid OTP or Error: " + error.message);
             document.getElementById('verify-btn').disabled = false;

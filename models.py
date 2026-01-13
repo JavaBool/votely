@@ -74,12 +74,18 @@ class Elector(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     election_id = db.Column(db.Integer, db.ForeignKey('election.id'), nullable=False)
     name = db.Column(db.String(100), nullable=False)
-    phone = db.Column(db.String(20), unique=True, nullable=True)
-    email = db.Column(db.String(120), unique=True, nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
+    email = db.Column(db.String(120), nullable=True)
     otp_secret = db.Column(db.String(10), nullable=True)
     secret_code = db.Column(db.String(6), nullable=False, default='000000')
     status = db.Column(db.String(20), default='approved')
     has_voted = db.Column(db.Boolean, default=False)
+    custom_success_msg = db.Column(db.Text, nullable=True)
+    
+    __table_args__ = (
+        db.UniqueConstraint('election_id', 'phone', name='uq_election_phone'),
+        db.UniqueConstraint('election_id', 'email', name='uq_election_email'),
+    )
 
 class Vote(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -78,7 +78,7 @@
     </div>
 </div>
 
-<!-- Stats Section -->
+
 <div style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
     <div style="background-color: var(--input-bg); padding: 1rem; border-radius: 5px; text-align: center;">
         <div style="font-size: 0.875rem; color: var(--text-secondary);">Total Electors</div>
@@ -105,7 +105,7 @@
 </div>
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-    <!-- Nominations Section -->
+
     <div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h2>Nominations</h2>
@@ -155,7 +155,7 @@
         </div>
     </div>
 
-    <!-- Electors Section -->
+
     <div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h2>Electors</h2>
@@ -240,7 +240,7 @@
                 </div>
             </form>
 
-            <!-- Pending Requests Section -->
+
             {% set pending_electors = election.electors | selectattr('status', 'equalto', 'pending') | list %}
             {% if pending_electors %}
             <div class="card mb-3" style="border-left: 5px solid var(--warning-color);">
@@ -344,6 +344,8 @@
                                             style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Re-vote</button>
                                         {% endif %}
 
+
+
                                         <button type="submit"
                                             formaction="{{ url_for('admin.delete_elector', elector_id=elector.id) }}"
                                             onclick="return confirm('Remove this elector?');"
@@ -415,7 +417,6 @@
         </div>
     </div>
 </div>
-<!-- Time Check Modal -->
 <div class="modal fade" id="durationModal" tabindex="-1" aria-hidden="true" style="display: none;">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -445,14 +446,8 @@
     </div>
 </div>
 
-<script>
-    function openDurationModal(title, actionUrl, defaultDuration) {
-        document.getElementById('durationModalLabel').textContent = title + ' Now';
-        document.getElementById('durationForm').action = actionUrl;
-        document.getElementById('durationInput').value = defaultDuration;
 
-        var myModal = new bootstrap.Modal(document.getElementById('durationModal'));
-        myModal.show();
-    }
-</script>
+
+
+
 {% endblock %}

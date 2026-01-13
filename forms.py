@@ -53,4 +53,5 @@ class EditElectorForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])
     phone = StringField('Phone')
     email = StringField('Email', validators=[Optional(), Email()])
+    custom_success_msg = TextAreaField('Custom Success Message (HTML)')
     submit = SubmitField('Update Elector')

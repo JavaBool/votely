@@ -48,11 +48,9 @@ def nominate(election_id):
         photo_path = None
         if photo and photo.filename != '' and election.config_photo != 0:
             filename = secure_filename(photo.filename)
-            # Ensure upload dir exists
             upload_dir = os.path.join(current_app.root_path, current_app.config['UPLOAD_FOLDER'])
             os.makedirs(upload_dir, exist_ok=True)
             
-            # Unique filename
             filename = f"{election_id}_{int(datetime.now().timestamp())}_{filename}"
             photo.save(os.path.join(upload_dir, filename))
             photo_path = f"uploads/{filename}"
@@ -192,7 +190,7 @@ def send_login_otp(election_id):
         return {'success': False, 'message': 'Email not registered for this election'}, 404
         
     otp = str(random.randint(100000, 999999))
-    # Store in SESSION instead of DB
+
     key = f"elector_otp_{email}"
     store_otp_in_session(key, otp)
     
@@ -233,7 +231,7 @@ def secret_vote_login(election_id):
     
     if now < election.start_time or now > election.end_time:
          flash('Voting is not currently active.', 'error')
-         # We allow staying on page, but voting wont work if we redirect to index basically
+
          return redirect(url_for('public.index'))
          
     if request.method == 'POST':
@@ -247,14 +245,10 @@ def secret_vote_login(election_id):
             
 
         elector = None
-        # Try finding by Phone first
         elector_phone = Elector.query.filter_by(election_id=election_id, phone=identifier, name=name, secret_code=code).first()
         if elector_phone and (election.allow_phone_voting or elector_phone.phone): 
-            # So if disabled, user shouldn't theoretically input phone. 
-            # But "identifier" field in my backend handles both. I will allow strict match.
             elector = elector_phone
         else:
-            # Try finding by Email
             elector_email = Elector.query.filter_by(election_id=election_id, email=identifier, name=name, secret_code=code).first()
             if elector_email:
                 elector = elector_email
@@ -295,7 +289,7 @@ def ballot(election_id):
     if request.method == 'POST':
         candidate_id = request.form.get('candidate_id')
         if candidate_id:
-            # Cast Vote
+
             vote = Vote(election_id=election_id, candidate_id=candidate_id, elector_id=elector_id)
             elector.has_voted = True
             elector.has_voted = True
@@ -305,6 +299,10 @@ def ballot(election_id):
             db.session.commit()
             
             session.pop('voter_elector_id', None)
+            
+            if elector.custom_success_msg:
+                return render_template('public/custom_success.html', msg=elector.custom_success_msg)
+                
             flash('Your vote has been cast successfully!', 'success')
             return redirect(url_for('public.index'))
         else:
@@ -328,17 +326,13 @@ def results(election_id):
         flash('Results for this election have not been released yet.', 'info')
         return redirect(url_for('public.index'))
     
-    # Count votes - Include 'approved' AND 'nota'
     results = db.session.query(Candidate, func.count(Vote.id))\
         .outerjoin(Vote, Candidate.id == Vote.candidate_id)\
         .filter(Candidate.election_id == election_id, Candidate.status.in_(['approved', 'nota']))\
         .group_by(Candidate.id).all()
     
-    # Format for template: [(candidate, count), ...]
-    # Sort by count desc
     results = sorted(results, key=lambda x: x[1], reverse=True)
     
-    # Calculate Ranks with Ties
     final_results = []
     current_rank = 0
     last_count = -1
@@ -374,7 +368,7 @@ def request_access(election_id):
             flash('Either Email or Phone is required.', 'error')
             return redirect(url_for('public.request_access', election_id=election_id))
             
-        # Check for existing elector
+
         existing_query = Elector.query.filter_by(election_id=election_id)
         if email:
             existing_email = existing_query.filter_by(email=email).first()
@@ -401,7 +395,7 @@ def request_access(election_id):
         db.session.add(new_elector)
         db.session.commit()
         
-        # Notify Admins
+
         admins = Admin.query.all()
         for admin in admins:
             if admin.email:

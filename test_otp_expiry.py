@@ -21,10 +21,10 @@ def test_otp_flow():
         
         print("\n3. Testing Expiration (Mocked Time)")
         # Store OTP
+        print("\n3. Testing Expiration (Mocked Time)")
+        
         store_otp_in_session('test_otp_expiry', '111222')
         
-        # Manually backdate the timestamp in session to simulate time passing
-        # Max age is 600s (10m). We backdate by 601s.
         session['test_otp_expiry_time'] = int(time.time()) - 601
         
         is_valid, msg = verify_otp_in_session('test_otp_expiry', '111222')

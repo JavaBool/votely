@@ -362,7 +362,7 @@ def start_nominations_now(election_id):
         db.session.commit()
         flash(f'Nominations started immediately for {minutes} minutes.', 'success')
         
-        # Check for overlap
+
         if election.nomination_end >= election.start_time:
              flash("WARNING: Nomination period overlaps with scheduled voting start. Automatic start disabled. You must click 'Start Voting Now' to begin election.", 'warning')
              
@@ -376,7 +376,7 @@ def end_nominations_now(election_id):
         return redirect(url_for('admin.dashboard'))
     election = Election.query.get_or_404(election_id)
     now = datetime.now()
-    # Check if currently in nomination period
+
     if election.nomination_start <= now and election.nomination_end > now:
         election.nomination_end = now
         db.session.commit()
@@ -395,8 +395,7 @@ def start_voting_now(election_id):
     
     minutes = int(request.form.get('minutes', 60))
     
-    # Must be after nominations (or nominations ended)
-    if election.nomination_end <= now: # Removed start_time check so it can be forced even if overlap warning happened
+    if election.nomination_end <= now:
         election.start_time = now
         election.end_time = now + timedelta(minutes=minutes)
         if election.status == 'draft':
@@ -416,7 +415,7 @@ def delete_election(election_id):
         return redirect(url_for('admin.dashboard'))
     election = Election.query.get_or_404(election_id)
     
-    # Initiate OTP flow
+
     otp = str(random.randint(100000, 999999))
     session['delete_election_id'] = election.id
 
@@ -465,22 +464,23 @@ def edit_elector(elector_id):
     form = EditElectorForm(obj=elector)
     
     if form.validate_on_submit():
-        # Check for duplicates in SAME election (excluding self)
+
         phone = form.phone.data
         email = form.email.data
+        elector.custom_success_msg = form.custom_success_msg.data
         
         if not phone and not email:
             flash('At least one of Phone or Email is required.', 'error')
             return render_template('admin/edit_elector.html', form=form, elector=elector)
 
-        # Check phone dup
+
         if phone:
             existing = Elector.query.filter_by(election_id=elector.election_id, phone=phone).first()
             if existing and existing.id != elector.id:
                 flash('This phone number is already registered for this election.', 'error')
                 return render_template('admin/edit_elector.html', form=form, elector=elector)
         
-        # Check email dup
+
         if email:
             existing = Elector.query.filter_by(election_id=elector.election_id, email=email).first()
             if existing and existing.id != elector.id:
@@ -507,7 +507,7 @@ def delete_elector(elector_id):
         
     election_id = elector.election_id
     
-    # Explicitly delete vote if exists
+
     Vote.query.filter_by(elector_id=elector.id).delete()
         
     db.session.delete(elector)
@@ -536,14 +536,12 @@ def delete_electors_bulk(election_id):
     from models import Vote
     deleted_count = 0
     
-    # Process deletions
+
 
     valid_electors = Elector.query.filter(Elector.election_id == election_id, Elector.id.in_(elector_ids)).all()
     
     for elector in valid_electors:
-        # Delete Vote
         Vote.query.filter_by(elector_id=elector.id).delete()
-        # Delete Elector
         db.session.delete(elector)
         deleted_count += 1
         
@@ -566,10 +564,8 @@ def get_secret_code(election_id):
         flash('Name and Phone/Email are required.', 'error')
         return redirect(url_for('admin.manage_election', election_id=election_id))
     
-    # Try exact phone match
     elector = Elector.query.filter_by(election_id=election_id, phone=identifier, name=name).first()
     if not elector:
-        # Try exact email match
         elector = Elector.query.filter_by(election_id=election_id, email=identifier, name=name).first()
             
     if elector:
@@ -627,7 +623,7 @@ def verify_reset_vote_otp():
             elector = Elector.query.get(elector_id)
             
             if elector and elector.has_voted:
-                # Find vote
+
                 vote = Vote.query.filter_by(elector_id=elector.id, election_id=elector.election_id).first()
                 if vote:
                     db.session.delete(vote)
@@ -700,23 +696,21 @@ def verify_release_results_otp():
                     from models import Candidate, Admin, Vote
                     from utils import send_notification_email
                     
-                    # 1. Fetch Candidates & Results
+
+
                     candidates = Candidate.query.filter_by(election_id=election.id).all()
-                    # Determine vote counts
+                    
                     results = []
                     for cand in candidates:
                         count = Vote.query.filter_by(candidate_id=cand.id).count()
                         results.append({'name': cand.name, 'votes': count})
-                    # Sort results
+                    
                     results.sort(key=lambda x: x['votes'], reverse=True)
                     
-                    # 2. Fetch Electors (Voted / Not Voted)
                     electors = Elector.query.filter_by(election_id=election.id).all()
                     voted_list = [e for e in electors if e.has_voted]
                     not_voted_list = [e for e in electors if not e.has_voted]
                     
-                    # 3. Build HTML
-                    # Helper for rows
                     def build_elector_rows(elector_list, show_phone):
                         rows = ""
                         for e in elector_list:
@@ -1393,3 +1387,5 @@ def update_email_limit():
        flash('Invalid limit value.', 'error')
        
     return redirect(url_for('admin.manage_admins'))
+
+

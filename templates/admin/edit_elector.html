@@ -39,6 +39,17 @@
                 {% endfor %}
             </div>
 
+            <div class="form-group">
+                <label for="custom_success_msg">Custom Success Message (HTML)</label>
+                {{ form.custom_success_msg(id="custom_success_msg", rows="5", placeholder="<p>Thank you for voting!</p>
+                ") }}
+                <p style="font-size: 0.8rem; color: #666; margin-top: 5px;">Optional. Enter raw HTML to display to this
+                    voter after they cast their vote. Dangerous content allowed (Admin only).</p>
+                {% for error in form.custom_success_msg.errors %}
+                <span class="error-message">{{ error }}</span>
+                {% endfor %}
+            </div>
+
             <button type="submit" class="btn btn-primary" style="width: 100%;">Update Elector</button>
         </form>
     </div>

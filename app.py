@@ -49,7 +49,7 @@ def create_app(config_class=Config):
                 election.status = 'completed'
             db.session.commit()
 
-            # or for a random user. The status change is enough.
+
 
 
     @app.errorhandler(404)
