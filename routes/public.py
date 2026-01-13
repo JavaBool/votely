@@ -3,7 +3,7 @@ from models import db, Election, Candidate
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
-from utils import send_otp, store_otp_in_session, verify_otp_in_session
+from utils import send_otp, store_otp_in_session, verify_otp_in_session, get_ist_now
 
 public_bp = Blueprint('public', __name__)
 
@@ -26,7 +26,7 @@ def election_details(election_id):
 @public_bp.route('/nominate/<int:election_id>', methods=['GET', 'POST'])
 def nominate(election_id):
     election = Election.query.get_or_404(election_id)
-    now = datetime.now()
+    now = get_ist_now()
     
     if now < election.nomination_start or now > election.nomination_end:
         flash('Nominations are not currently open for this election.', 'error')
@@ -51,7 +51,7 @@ def nominate(election_id):
             upload_dir = os.path.join(current_app.root_path, current_app.config['UPLOAD_FOLDER'])
             os.makedirs(upload_dir, exist_ok=True)
             
-            filename = f"{election_id}_{int(datetime.now().timestamp())}_{filename}"
+            filename = f"{election_id}_{int(get_ist_now().timestamp())}_{filename}"
             photo.save(os.path.join(upload_dir, filename))
             photo_path = f"uploads/{filename}"
         
@@ -96,7 +96,7 @@ def vote_login(election_id):
     from utils import verify_otp_in_session
     
     election = Election.query.get_or_404(election_id)
-    now = datetime.now()
+    now = get_ist_now()
     
     if now < election.start_time or now > election.end_time:
         flash('Voting is not currently active for this election.', 'error')
@@ -227,7 +227,7 @@ def secret_vote_login(election_id):
     from flask import session
     
     election = Election.query.get_or_404(election_id)
-    now = datetime.now()
+    now = get_ist_now()
     
     if now < election.start_time or now > election.end_time:
          flash('Voting is not currently active.', 'error')
@@ -343,7 +343,7 @@ def results(election_id):
     
     election = Election.query.get_or_404(election_id)
     
-    if not election.show_results or election.end_time > datetime.now():
+    if not election.show_results or election.end_time > get_ist_now():
         flash('Results for this election have not been released yet.', 'info')
         return redirect(url_for('public.index'))
     

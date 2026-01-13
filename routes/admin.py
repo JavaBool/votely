@@ -5,7 +5,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from models import db, Admin, Election, Candidate, Elector
 from forms import ElectionForm, ChangePasswordForm, AddAdminForm, EditAdminForm, NewPasswordForm, ForgotPasswordForm, EditElectorForm
 from datetime import datetime, timedelta
-from utils import send_otp, send_password_email, store_otp_in_session, verify_otp_in_session
+from utils import send_otp, send_password_email, store_otp_in_session, verify_otp_in_session, get_ist_now
 from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import string
@@ -116,7 +116,7 @@ def edit_election(election_id):
                  db.session.delete(nota_candidate)
              
 
-             now = datetime.now()
+             now = get_ist_now()
              if election.status == 'completed' and election.end_time > now:
                  election.status = 'active'
                  flash('Election reactivated because end time was extended.', 'info')
@@ -346,7 +346,7 @@ def end_election(election_id):
     election = Election.query.get_or_404(election_id)
     if election.status == 'active':
         election.status = 'completed'
-        election.end_time = datetime.now()
+        election.end_time = get_ist_now()
         db.session.commit()
         flash('Election marked as completed.', 'success')
     return redirect(url_for('admin.manage_election', election_id=election_id))
@@ -361,7 +361,7 @@ def start_nominations_now(election_id):
         flash('Access denied.', 'error')
         return redirect(url_for('admin.dashboard'))
     election = Election.query.get_or_404(election_id)
-    now = datetime.now()
+    now = get_ist_now()
     
     minutes = int(request.form.get('minutes', 5))
     
@@ -384,7 +384,7 @@ def end_nominations_now(election_id):
         flash('Access denied.', 'error')
         return redirect(url_for('admin.dashboard'))
     election = Election.query.get_or_404(election_id)
-    now = datetime.now()
+    now = get_ist_now()
 
     if election.nomination_start <= now and election.nomination_end > now:
         election.nomination_end = now
@@ -400,7 +400,7 @@ def start_voting_now(election_id):
         flash('Access denied.', 'error')
         return redirect(url_for('admin.dashboard'))
     election = Election.query.get_or_404(election_id)
-    now = datetime.now()
+    now = get_ist_now()
     
     minutes = int(request.form.get('minutes', 60))
     

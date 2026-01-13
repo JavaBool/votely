@@ -13,6 +13,13 @@ import json
 CONFIG_FILE = 'email_config.json'
 DEFAULT_LIMIT = 5
 
+def get_ist_now():
+    """Returns current time in IST (Naive, safe for comparison with potential naive DB datetimes)."""
+    import pytz
+    from datetime import datetime
+    ist = pytz.timezone('Asia/Kolkata')
+    return datetime.now(ist).replace(tzinfo=None)
+
 def store_otp_in_session(key, otp):
     """Stores OTP and timestamp in session."""
     session[key] = otp

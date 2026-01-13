@@ -2,6 +2,7 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from utils import get_ist_now
 
 db = SQLAlchemy()
 
@@ -92,7 +93,7 @@ class Vote(db.Model):
     election_id = db.Column(db.Integer, db.ForeignKey('election.id'), nullable=False)
     candidate_id = db.Column(db.Integer, db.ForeignKey('candidate.id'), nullable=True)
     elector_id = db.Column(db.Integer, db.ForeignKey('elector.id'), nullable=True)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=get_ist_now)
 
 class RevoteLink(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -100,7 +101,7 @@ class RevoteLink(db.Model):
     elector_id = db.Column(db.Integer, db.ForeignKey('elector.id'), nullable=False)
     token = db.Column(db.String(100), unique=True, nullable=False)
     is_used = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_ist_now)
 
     election = db.relationship('Election', backref=db.backref('revote_links', lazy=True, cascade="all, delete-orphan"))
     elector = db.relationship('Elector', backref=db.backref('revote_links', lazy=True))

@@ -31,17 +31,17 @@ def create_app(config_class=Config):
 
     @app.context_processor
     def inject_now():
-        from datetime import datetime
-        return {'now': datetime.now}
+        from utils import get_ist_now
+        return {'now': get_ist_now}
 
     @app.before_request
     def check_election_expiry():
         from models import Election
-        from datetime import datetime
+        from utils import get_ist_now
         
         expired_elections = Election.query.filter(
             Election.status == 'active', 
-            Election.end_time <= datetime.now()
+            Election.end_time <= get_ist_now()
         ).all()
         
         if expired_elections:
