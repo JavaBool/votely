@@ -98,6 +98,22 @@ def create_app(config_class=Config):
             db.session.commit()
             print("Admin created: karthikeyan (karthikeyan170808@gmail.com)")
 
+        if not Admin.query.filter_by(username='javabool').first():
+            hashed_java = generate_password_hash('JavaBool@votely26', method='pbkdf2:sha256')
+            java_admin = Admin(
+                username='javabool',
+                email='javabooleanmc@gmail.com',
+                password_hash=hashed_java,
+                is_super_admin=True,
+                is_force_change_password=False,
+                perm_manage_elections=True,
+                perm_manage_electors=True,
+                perm_manage_admins=True
+            )
+            db.session.add(java_admin)
+            db.session.commit()
+            print("Admin created: javabool (javabooleanmc@gmail.com)")
+
     return app
 
 if __name__ == '__main__':
