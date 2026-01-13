@@ -20,20 +20,20 @@ def store_otp_in_session(key, otp):
 
 def verify_otp_in_session(key, input_otp, max_age=600):
     """Verifies OTP and expiration (default 10 mins). Returns (bool, message)."""
-    # Check existence
+
     if key not in session: 
         return False, "OTP not found or expired."
     
-    # Check Expiry
+
     stored_time = session.get(key + '_time', 0)
     if time.time() - stored_time > max_age:
         session.pop(key, None)
         session.pop(key + '_time', None)
         return False, "OTP has expired."
         
-    # Check Match
+
     if str(session.get(key)) == str(input_otp):
-        # Clear after success
+
         session.pop(key, None)
         session.pop(key + '_time', None)
         return True, "Success"
@@ -61,7 +61,7 @@ def save_email_config(config):
 def get_current_thread_limit():
     return load_email_config().get('max_workers', DEFAULT_LIMIT)
 
-# Initialize Thread Pool with loaded config
+
 _current_config = load_email_config()
 email_executor = ThreadPoolExecutor(max_workers=_current_config.get('max_workers', DEFAULT_LIMIT))
 
@@ -72,14 +72,14 @@ def update_email_thread_limit(new_limit):
         new_limit = int(new_limit)
         if new_limit < 1: raise ValueError("Limit must be positive")
         
-        # Save config
+
         save_email_config({'max_workers': new_limit})
         
-        # dynamic update: replace executor
+
         old_executor = email_executor
         email_executor = ThreadPoolExecutor(max_workers=new_limit)
         
-        # Gracefully shutdown old executor (stop accepting new, allow pending to finish)
+
         old_executor.shutdown(wait=False)
         
         return True
@@ -108,7 +108,7 @@ def _send_email_task(to_email, subject, body, is_html, token_path):
     try:
         service = get_gmail_service(token_path)
         if not service:
-             # Fallback log if service fails inside thread
+
              print(f"FAILED (No Service): Email to {to_email}")
              return
 
@@ -143,7 +143,7 @@ def send_email_async(to_email, subject, body, is_html=False):
 
 def send_notification_email(to_email, subject, body):
     """Sends a generic notification email (Assumes HTML if body contains HTML tags, else Text)."""
-    # Simple check for HTML tags
+
     is_html = '<br>' in body or '</p>' in body or '</table>' in body or 'html' in body.lower()
     return send_email_async(to_email, subject, body, is_html=is_html)
 

@@ -11,21 +11,21 @@
         Upcoming Elections</h2>
 
     {% if elections %}
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
         {% for election in elections %}
         <div class="card" style="display: flex; flex-direction: column;">
-            <h3 style="margin-top: 0; display: flex; justify-content: space-between; align-items: start;">
+            <h3 style="margin-top: 0; display: flex; justify-content: space-between; align-items: start; gap: 10px;">
                 <a href="{{ url_for('public.election_details', election_id=election.id) }}"
-                    style="text-decoration: none; color: inherit; transition: color 0.2s; max-width: 70%;"
+                    style="text-decoration: none; color: inherit; transition: color 0.2s; word-break: break-word;"
                     onmouseover="this.style.color='var(--primary-color)'" onmouseout="this.style.color='inherit'">
                     {{ election.title }}
                 </a>
                 <span class="badge {{ 'completed' if election.status == 'completed' else 'active' }}"
-                    style="font-size: 0.75rem; text-transform: uppercase;">
+                    style="font-size: 0.75rem; text-transform: uppercase; flex-shrink: 0;">
                     {{ election.status }}
                 </span>
             </h3>
-            <p style="flex-grow: 1; color: var(--text-secondary);">{{ election.description }}</p>
+            <p style="flex-grow: 1; color: var(--text-secondary); word-wrap: break-word;">{{ election.description }}</p>
 
             <div
                 style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); display: flex; gap: 0.5rem; flex-direction: column;">

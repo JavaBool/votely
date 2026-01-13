@@ -25,7 +25,7 @@ def create_app(config_class=Config):
     db.init_app(app)
     login_manager.init_app(app)
     
-    # Initialize Firebase
+
     from firebase_setup import initialize_firebase
     initialize_firebase(app)
 
@@ -39,7 +39,6 @@ def create_app(config_class=Config):
         from models import Election
         from datetime import datetime
         
-        # Check for active elections that have passed their end time
         expired_elections = Election.query.filter(
             Election.status == 'active', 
             Election.end_time <= datetime.now()
@@ -48,11 +47,7 @@ def create_app(config_class=Config):
         if expired_elections:
             for election in expired_elections:
                 election.status = 'completed'
-                # Note: We don't change end_time here as it was set during creation/edit
-                # and acts as the trigger.
             db.session.commit()
-            # We don't flash here because it might happen on a random request (like fetching an image)
-            # or for a random user. The status change is enough.
 
             # or for a random user. The status change is enough.
 
@@ -68,10 +63,9 @@ def create_app(config_class=Config):
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(public_bp, url_prefix='/')
     
-    # Create database structure eagerly for this simple app
+
     with app.app_context():
         db.create_all()
-        # Create default super admin if not exists
         if not Admin.query.filter_by(username='admin').first():
             hashed_password = generate_password_hash('admin', method='pbkdf2:sha256')
             default_admin = Admin(
@@ -79,7 +73,7 @@ def create_app(config_class=Config):
                 email='praveenkumar051207@gmail.com',
                 password_hash=hashed_password,
                 is_super_admin=True,
-                is_force_change_password=True, # Force change even for default
+                is_force_change_password=True,
                 perm_manage_elections=True,
                 perm_manage_electors=True,
                 perm_manage_admins=True

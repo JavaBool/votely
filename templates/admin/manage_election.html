@@ -42,7 +42,7 @@
             {% endif %}
             {% endif %}
 
-            <!-- Manual Timing Controls -->
+
             {% if election.status != 'draft' %}
             {% if election.nomination_start > now() %}
             <button type="button" class="btn btn-info"
@@ -336,19 +336,6 @@
 
                                         {% if election.status != 'completed' %}
                                         {% if elector.has_voted %}
-                                        <!-- Use a separate form for re-vote to avoid nesting issues if we were inside another form, but here we are inside bulk form. 
-                                         HTML does not allow nested forms. 
-                                         Solution: Use button with `formaction` attribute if supported, OR keep rows outside.
-                                         Better: Since we can't nest forms, we should move the per-row actions to be standalone triggers (GET or separate JS submitting invisible forms).
-                                         However, Re-vote is a POST form. 
-                                         
-                                         Standard fix: Use `form` attribute on inputs outside the main form, OR
-                                         Change the outer wrapper.
-                                         
-                                         Let's use `button type="submit" formaction="..."` for the individual actions? 
-                                         The bulk form submits to `delete_electors_bulk`. 
-                                         The individual delete/revote buttons can override this using `formaction`.
-                                    -->
 
                                         <button type="submit"
                                             formaction="{{ url_for('admin.reset_vote', elector_id=elector.id) }}"

@@ -5,17 +5,17 @@ from flask_login import login_user, logout_user, login_required, current_user
 from models import db, Admin, Election, Candidate, Elector
 from forms import ElectionForm, ChangePasswordForm, AddAdminForm, EditAdminForm, NewPasswordForm, ForgotPasswordForm, EditElectorForm
 from datetime import datetime
-from utils import send_otp, send_password_email, store_otp_in_session, verify_otp_in_session # Added this line based on the provided 'Code Edit' context
-from werkzeug.security import generate_password_hash, check_password_hash # Added this line based on usage in the file
-import random # Added this line based on usage in the file
-import string # Added this line based on usage in the file
+from utils import send_otp, send_password_email, store_otp_in_session, verify_otp_in_session
+from werkzeug.security import generate_password_hash, check_password_hash
+import random
+import string
 
 admin_bp = Blueprint('admin', __name__)
 
 @admin_bp.before_request
 def restrict_access_if_force_change():
     if current_user.is_authenticated and current_user.is_force_change_password:
-        # Allowed endpoints during force change
+
         allowed = ['admin.change_password', 'admin.logout', 'static']
         if request.endpoint and request.endpoint not in allowed:
             flash('You must change your password before proceeding.', 'warning')
@@ -29,7 +29,7 @@ def create_election():
         return redirect(url_for('admin.dashboard'))
     form = ElectionForm()
     if form.validate_on_submit():
-        # strict validation
+
         if form.nomination_start.data >= form.nomination_end.data:
              flash('Nomination start time must be before nomination end time.', 'error')
         elif form.nomination_end.data >= form.start_time.data:
@@ -54,7 +54,7 @@ def create_election():
              db.session.add(election)
              db.session.commit()
              
-             # Handle NOTA
+
              if election.allow_nota:
                  nota = Candidate(election_id=election.id, name="None of the Above", email="nota@system", status='nota')
                  db.session.add(nota)
@@ -69,7 +69,7 @@ def create_election():
 def manage_election(election_id):
     election = Election.query.get_or_404(election_id)
     
-    # Calculate Stats
+
     total_electors = Elector.query.filter_by(election_id=election_id, status='approved').count()
     votes_casted = Elector.query.filter_by(election_id=election_id, has_voted=True).count()
     
@@ -86,7 +86,7 @@ def edit_election(election_id):
     form = ElectionForm(obj=election)
     
     if form.validate_on_submit():
-         # Strict validation copied from create
+
         if form.nomination_start.data >= form.nomination_end.data:
              flash('Nomination start time must be before nomination end time.', 'error')
         elif form.nomination_end.data >= form.start_time.data:
@@ -106,7 +106,7 @@ def edit_election(election_id):
              election.allow_nota = form.allow_nota.data
              election.allow_phone_voting = form.allow_phone_voting.data
              
-             # Handle NOTA logic
+
              nota_candidate = Candidate.query.filter_by(election_id=election.id, status='nota').first()
              
              if election.allow_nota and not nota_candidate:
@@ -115,7 +115,7 @@ def edit_election(election_id):
              elif not election.allow_nota and nota_candidate:
                  db.session.delete(nota_candidate)
              
-             # Automatic Reactivation/Completion Logic
+
              now = datetime.now()
              if election.status == 'completed' and election.end_time > now:
                  election.status = 'active'
@@ -124,7 +124,7 @@ def edit_election(election_id):
                  election.status = 'completed'
                  flash('Election marked as completed because end time is in the past.', 'info')
 
-             # Unpublish results if they were previously published, to ensure consistency
+
              if election.show_results:
                  election.show_results = False
                  flash('Election results have been unpublished due to modifications.', 'warning')
@@ -144,7 +144,7 @@ def approve_candidate(candidate_id):
     candidate.status = 'approved'
     db.session.commit()
     
-    # Send Notification
+
     if candidate.email:
         subject = f"Nomination Approved: {candidate.election.title}"
         body = f"Dear {candidate.name},\n\nCongratulations! Your nomination for '{candidate.election.title}' has been approved. You are now an official candidate.\n\nGood luck!"
@@ -161,7 +161,7 @@ def reject_candidate(candidate_id):
     candidate.status = 'rejected'
     db.session.commit()
     
-    # Send Notification
+
     if candidate.email:
         subject = f"Nomination Update: {candidate.election.title}"
         body = f"Dear {candidate.name},\n\nWe regret to inform you that your nomination for '{candidate.election.title}' has been rejected or withdrawn.\n\nIf you have questions, please contact the administration."
@@ -242,7 +242,7 @@ def import_electors(election_id):
         
         has_header = False
         
-        # Dynamic Mapping
+
         try:
             # Find indices if headers exist
             p_idx = -1
@@ -257,20 +257,18 @@ def import_electors(election_id):
                 elif 'name' in col:
                     n_idx = i
             
-            # If we found at least Name and one contact method, OR just Name and others are explicitly present in file structure
-            if n_idx != -1:
+
                 name_idx = n_idx
                 has_header = True
                 if p_idx != -1: phone_idx = p_idx
                 if e_idx != -1: email_idx = e_idx
                 
-                # If we mapped via header, ensure we don't read mapped indices that don't exist in a specific data row later
-                # For now, just setting the indices is enough.
+
         except:
-            pass # Fallback to 0, 1, 2
+            pass
             
         start_index = 1 if has_header else 0
-        # Fallback check: If we didn't find "headers" but row 0 text looks like headers (e.g. "Phone", "Email"), skip it manually if not already skipped
+        # Fallback check
         if not has_header and len(rows[0]) >= 3:
              if 'phone' in header[0] or 'email' in header[1] or 'name' in header[2]:
                  start_index = 1
@@ -283,11 +281,9 @@ def import_electors(election_id):
                 email = row[email_idx].strip() if width_safe(row, email_idx) else None
                 name = row[name_idx].strip() if width_safe(row, name_idx) else None
                 
-                # Handling the case where phone/email might not have been found in header, so indices are defaults (0,1).
-                # But if we are in "Smart Mode" (has_header=True) and we didn't find 'phone' column, we shouldn't grab column 0 blindly if column 0 is 'Roll No'.
-                # So verify:
+
                 if has_header:
-                     if p_idx == -1: phone = None # No phone column found
+                     if p_idx == -1: phone = None
                      else: phone = row[p_idx].strip() if width_safe(row, p_idx) else None
                      
                      if e_idx == -1: email = None 
@@ -423,7 +419,7 @@ def delete_election(election_id):
     # Initiate OTP flow
     otp = str(random.randint(100000, 999999))
     session['delete_election_id'] = election.id
-    # session['delete_election_otp'] = otp # REPLACED
+
     store_otp_in_session('delete_election_otp', otp)
     
     send_otp(current_user.email, otp, purpose=f"Deletion of '{election.title}'")
@@ -541,7 +537,7 @@ def delete_electors_bulk(election_id):
     deleted_count = 0
     
     # Process deletions
-    # Fetch all valid electors for this election to ensure we don't delete from other elections via ID manipulation
+
     valid_electors = Elector.query.filter(Elector.election_id == election_id, Elector.id.in_(elector_ids)).all()
     
     for elector in valid_electors:
@@ -563,7 +559,7 @@ def get_secret_code(election_id):
         return redirect(url_for('admin.manage_election', election_id=election_id))
         
     name = request.form.get('name', '').strip()
-    identifier = request.form.get('identifier', '').strip() # Phone or Email
+    identifier = request.form.get('identifier', '').strip()
     action = request.form.get('action', 'get')
     
     if not name or not identifier:
@@ -610,7 +606,7 @@ def reset_vote(elector_id):
     # Initiate OTP flow
     otp = str(random.randint(100000, 999999))
     session['reset_vote_elector_id'] = elector.id
-    # session['reset_vote_otp'] = otp # REPLACED
+
     store_otp_in_session('reset_vote_otp', otp)
     
     send_otp(current_user.email, otp, purpose="Vote Reset")
@@ -699,7 +695,7 @@ def verify_release_results_otp():
                 election.show_results = True
                 db.session.commit()
                 
-                # --- Send Detailed Result Email to Admins ---
+
                 try:
                     from models import Candidate, Admin, Vote
                     from utils import send_notification_email
@@ -811,13 +807,13 @@ def verify_release_results_otp():
 @admin_bp.route('/admins', methods=['GET', 'POST'])
 @login_required
 def manage_admins():
-    from utils import get_current_thread_limit # import helper
+    from utils import get_current_thread_limit
     
     if not current_user.can_manage_admins:
         flash('Access denied.', 'error')
         return redirect(url_for('admin.dashboard'))
     
-    # ... existing form logic ...
+
     form = AddAdminForm()
     if form.validate_on_submit():
         if Admin.query.filter_by(username=form.username.data).first():
@@ -861,18 +857,14 @@ def edit_admin(admin_id):
         return redirect(url_for('admin.dashboard'))
         
     admin = Admin.query.get_or_404(admin_id)
-    # Check if a non-super-admin tries to edit a super-admin (other than potential self-edit allowed logic, but usually super-admin edits super-admin)
-    # The requirement is: "super-admin while updating his details... email OTP check".
-    # And "super-admin cannot be deleted".
-    # Other admins cannot edit super-admin.
+
     if admin.is_super_admin and not current_user.is_super_admin:
          flash('Cannot edit Super Admin.', 'error')
          return redirect(url_for('admin.manage_admins'))
 
     form = EditAdminForm(obj=admin)
     
-    # If editing super admin, force permissions to be True and disabled in UI (handled in template)
-    # Logic enforcement:
+
     if request.method == 'POST':
         if admin.is_super_admin:
             # Ignore form data for permissions, ensure they remain True
@@ -957,7 +949,7 @@ def verify_update_otp():
                     flash('Admin updated successfully.', 'success')
             
             session.pop('update_admin_data', None)
-            session.pop('update_admin_otp', None) # Clear OTP from session
+            session.pop('update_admin_otp', None)
             return redirect(url_for('admin.manage_admins'))
         else:
             flash(msg, 'error')
@@ -1021,7 +1013,7 @@ def verify_password_change_otp():
         
         if is_valid:
             session['pwd_change_verified'] = True
-            session.pop('password_change_otp', None) # Clear OTP from session
+            session.pop('password_change_otp', None)
             return redirect(url_for('admin.self_set_password'))
         else:
             flash(msg, 'error')
@@ -1038,7 +1030,7 @@ def self_set_password():
     if form.validate_on_submit():
         user = Admin.query.get(current_user.id)
         user.password_hash = generate_password_hash(form.new_password.data, method='pbkdf2:sha256')
-        user.is_force_change_password = False # In case they triggered it this way
+        user.is_force_change_password = False
         db.session.commit()
         
         # Cleanup
@@ -1067,8 +1059,7 @@ def forgot_password():
             session['reset_pwd_user_id'] = user.id
             
             send_otp(user.email, otp, purpose="Password Reset")
-            # Security: Don't reveal if user exists or not, but for this internal app, it's fine to be explicit or just redirect.
-            # Best practice: "If this account exists, an OTP has been sent."
+
             flash(f'If an account exists for {user_input}, an OTP has been sent.', 'info')
             return redirect(url_for('admin.verify_reset_password_otp'))
         else:
@@ -1080,9 +1071,7 @@ def forgot_password():
 @admin_bp.route('/login/forgot/verify', methods=['GET', 'POST'])
 def verify_reset_password_otp():
     if 'reset_pwd_otp' not in session:
-        # If no session, it might be a direct access or expired. 
-        # Show form or redirect.
-        return render_template('admin/verify_otp_generic.html', title="Enter OTP") # Will fail on POST if no session key, but handles UI.
+        return render_template('admin/verify_otp_generic.html', title="Enter OTP")
         
     if request.method == 'POST':
         otp = request.form.get('otp')
@@ -1111,7 +1100,7 @@ def reset_password_set():
             
             session.pop('reset_pwd_verified', None)
             session.pop('reset_pwd_user_id', None)
-            session.pop('reset_pwd_otp', None) # Clear OTP from session
+            session.pop('reset_pwd_otp', None)
             
             flash('Password reset successfully. Please login.', 'success')
             return redirect(url_for('admin.login'))
@@ -1124,7 +1113,7 @@ def login():
         return redirect(url_for('admin.dashboard'))
         
     if request.method == 'POST':
-        login_id = request.form.get('username') # can be username or email
+        login_id = request.form.get('username')
         password = request.form.get('password')
         
         user = Admin.query.filter((Admin.username==login_id) | (Admin.email==login_id)).first()
@@ -1157,10 +1146,9 @@ def verify_login_otp():
              if user:
                  login_user(user)
                  session.pop('pending_login_user_id', None)
-                 session.pop('login_otp', None) # Clear OTP from session
+                 session.pop('login_otp', None)
                  
-                 # Redirect to next page or dashboard
-                 # next_page = request.args.get('next') # Not doing next arg handling here for brevity
+
                  return redirect(url_for('admin.dashboard'))
         else:
              flash(msg, 'error')
@@ -1190,7 +1178,7 @@ def approve_elector_request(elector_id):
     elector.status = 'approved'
     db.session.commit()
     
-    # Notify User
+
     if elector.email:
         from utils import send_notification_email
         subject = f"Access Approved: {elector.election.title}"
@@ -1214,7 +1202,7 @@ def reject_elector_request(elector_id):
         
     elector = Elector.query.get_or_404(elector_id)
     
-    # Store needed info before delete
+
     election_id = elector.election.id
     email = elector.email
     name = elector.name
@@ -1223,7 +1211,7 @@ def reject_elector_request(elector_id):
     db.session.delete(elector)
     db.session.commit()
     
-    # Notify User
+
     if email:
         from utils import send_notification_email
         subject = f"Access Request Update: {title}"
@@ -1246,7 +1234,7 @@ def export_electors(election_id):
 
     election = Election.query.get_or_404(election_id)
     
-    # Generate CSV
+
     si = io.StringIO()
     cw = csv.writer(si)
     cw.writerow(['Name', 'Email', 'Phone'])
@@ -1267,7 +1255,7 @@ def initiate_export_secret_codes(election_id):
         
     election = Election.query.get_or_404(election_id)
     
-    # Initiate OTP flow
+
     otp = str(random.randint(100000, 999999))
     session['export_codes_election_id'] = election.id
     store_otp_in_session('export_codes_otp', otp)
@@ -1308,10 +1296,7 @@ def verify_export_secret_codes_otp():
                 output.headers["Pragma"] = "no-cache"
                 output.headers["Expires"] = "0"
                 
-                # Clear session *after* successful generation handling (though strictly for download we just return resp)
-                # But to prevent replay, we should clear. 
-                # Note: Returning response ends function, so clear first?
-                # No, if we clear then return, it's fine.
+
                 session.pop('export_codes_election_id', None)
                 session.pop('export_codes_otp', None)
                 
@@ -1358,7 +1343,7 @@ def verify_reset_all_codes_otp():
         
     if request.method == 'POST':
         otp = request.form.get('otp')
-        # FIX: Provide correct key 'reset_all_codes_otp', previous step had mismatch
+
         is_valid, msg = verify_otp_in_session('reset_all_codes_otp', otp)
         
         if is_valid:

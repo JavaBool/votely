@@ -9,7 +9,7 @@ public_bp = Blueprint('public', __name__)
 
 @public_bp.route('/')
 def index():
-    # Show active elections or elections in nomination phase
+
     elections = Election.query.filter(Election.status != 'draft').order_by(Election.start_time.desc()).all()
     return render_template('public/index.html', elections=elections)
 
@@ -38,12 +38,12 @@ def nominate(election_id):
         age = request.form.get('age')
         photo = request.files.get('photo')
         
-        # Check for duplicate nomination
+
         if Candidate.query.filter_by(election_id=election_id, email=email).first():
             flash('You have already nominated yourself for this election.', 'error')
             return redirect(url_for('public.index'))
             
-        # Basic validation handled by HTML5, but good to check backend too (omitted for brevity)
+
         
         photo_path = None
         if photo and photo.filename != '' and election.config_photo != 0:
@@ -57,7 +57,7 @@ def nominate(election_id):
             photo.save(os.path.join(upload_dir, filename))
             photo_path = f"uploads/{filename}"
         
-        # Age Validation
+
         candidate_age = None
         if age:
             try:
@@ -70,7 +70,7 @@ def nominate(election_id):
                      flash(f'Nomination rejected: Minimum age requirement is {election.min_age}.', 'error')
                      return redirect(url_for('public.nominate', election_id=election_id))
             except ValueError:
-                if election.config_age == 2: # Required
+                if election.config_age == 2:
                     flash('Invalid age provided.', 'error')
                     return redirect(url_for('public.nominate', election_id=election_id))
 
@@ -105,7 +105,7 @@ def vote_login(election_id):
         return redirect(url_for('public.index'))
 
     if request.method == 'POST':
-        # --- PHONE AUTH (Firebase) ---
+
         id_token = request.form.get('idToken')
         if id_token:
             if not election.allow_phone_voting:
@@ -143,13 +143,13 @@ def vote_login(election_id):
                 flash(f'Authentication failed: {str(e)}', 'error')
                 return redirect(url_for('public.vote_login', election_id=election_id))
 
-        # --- EMAIL OTP AUTH ---
+
         email = request.form.get('email')
         otp = request.form.get('otp')
         
         if email and otp:
             # First verify OTP using session helper
-            key = f"elector_otp_{email}" # Use email in key for uniqueness
+            key = f"elector_otp_{email}"
             is_valid, msg = verify_otp_in_session(key, otp)
             
             if is_valid:
@@ -162,7 +162,7 @@ def vote_login(election_id):
                      flash('Your access request is pending approval or has been rejected.', 'error')
                      return redirect(url_for('public.vote_login', election_id=election_id))
 
-                # Note: We don't need to clear DB field anymore
+
                 
                 if elector.has_voted:
                     flash('You have already voted in this election.', 'warning')
@@ -172,7 +172,7 @@ def vote_login(election_id):
                 session['voter_election_id'] = election_id
                 return redirect(url_for('public.ballot', election_id=election_id))
             else:
-                 flash(msg, 'error') # msg contains "OTP expired" or "Invalid OTP"
+                 flash(msg, 'error')
                  return redirect(url_for('public.vote_login', election_id=election_id))
               
     return render_template('public/login.html', election=election)
@@ -209,9 +209,7 @@ def check_phone(election_id):
     if not phone:
         return {'exists': False, 'message': 'Phone number is required'}, 400
         
-    # Formatting: Frontend sends something like +91 9876...', backend might compare strict or loose. 
-    # For now, simplistic comparison assuming consistent format or frontend sanitization.
-    # The login process later uses strict match on what Firebase returns.
+
     
     elector = Elector.query.filter_by(election_id=election_id, phone=phone).first()
     
@@ -240,20 +238,19 @@ def secret_vote_login(election_id):
          
     if request.method == 'POST':
         name = request.form.get('name').strip()
-        identifier = request.form.get('identifier').strip() # Phone or Email
+        identifier = request.form.get('identifier').strip()
         code = request.form.get('code').strip()
         
         if not name or not identifier or not code:
             flash('All fields are required.', 'error')
             return render_template('public/secret_login.html', election=election)
             
-        # Verify
+
         elector = None
         # Try finding by Phone first
         elector_phone = Elector.query.filter_by(election_id=election_id, phone=identifier, name=name, secret_code=code).first()
-        if elector_phone and (election.allow_phone_voting or elector_phone.phone): # Allow access even if disabled? Prompt says "Ask Phone number (if enabled)". 
-            # If phone voting disabled, can they use phone here? 
-            # Prompt: "ask for Phone number (if enabled)". So if disabled, user shouldn't theoretically input phone. 
+        if elector_phone and (election.allow_phone_voting or elector_phone.phone): 
+            # So if disabled, user shouldn't theoretically input phone. 
             # But "identifier" field in my backend handles both. I will allow strict match.
             elector = elector_phone
         else:
@@ -275,7 +272,7 @@ def secret_vote_login(election_id):
             
     return render_template('public/secret_login.html', election=election)
 
-# verify_otp route removed as it is no longer needed (Client-side phone auth)
+
 
 @public_bp.route('/vote/<int:election_id>/ballot', methods=['GET', 'POST'])
 def ballot(election_id):
@@ -302,7 +299,7 @@ def ballot(election_id):
             vote = Vote(election_id=election_id, candidate_id=candidate_id, elector_id=elector_id)
             elector.has_voted = True
             elector.has_voted = True
-            # elector.otp_secret = None # Field removed
+
             
             db.session.add(vote)
             db.session.commit()
@@ -348,17 +345,7 @@ def results(election_id):
     
     for i, (candidate, count) in enumerate(results):
         if count != last_count:
-            # Standard Competition Ranking: Rank = index + 1 (1, 2, 2, 4)
-            # or Dense Ranking: Rank = previous + 1 (1, 2, 2, 3)
-            # User request: "tie up so allocate same rank".
-            # Standard is safer for "Rank #X".
             current_rank = i + 1
-        
-        # User requested "same number of votes means tie up so allocate same rank"
-        # This implementation (Standard) does that: 1, 2, 2, 4.
-        # If they meant Dense (1, 2, 2, 3), I can change it.
-        # Let's stick to Standard.
-        final_results.append((candidate, count, current_rank))
     results = final_results
     
     total_votes = Vote.query.filter_by(election_id=election_id).count()
@@ -378,7 +365,7 @@ def request_access(election_id):
         email = request.form.get('email')
         phone = request.form.get('phone')
         
-        # Validation
+
         if not name:
             flash('Name is required.', 'error')
             return redirect(url_for('public.request_access', election_id=election_id))
@@ -401,7 +388,7 @@ def request_access(election_id):
                 flash('You are already in the voter list or have a pending request (checked by Phone).', 'error')
                 return redirect(url_for('public.request_access', election_id=election_id))
         
-        # Create Pending Elector
+
         
         new_elector = Elector(
             election_id=election_id, 
@@ -409,7 +396,7 @@ def request_access(election_id):
             email=email if email else None,
             phone=phone if phone else None,
             status='pending',
-            secret_code=secrets.token_hex(3).upper() # Generate random code, though not used yet
+            secret_code=secrets.token_hex(3).upper()
         )
         db.session.add(new_elector)
         db.session.commit()

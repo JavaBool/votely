@@ -1,30 +1,29 @@
 :root {
     --primary-color: #6366f1;
-    /* Indigo 500 */
+
     --primary-hover: #818cf8;
-    /* Indigo 400 - Lighter for hover in dark mode */
+
     --bg-color: #111827;
-    /* Gray 900 */
+
     --text-color: #f9fafb;
-    /* Gray 50 */
+
     --text-secondary: #9ca3af;
-    /* Gray 400 */
+
     --card-bg: #1f2937;
-    /* Gray 800 */
+
     --border-color: #374151;
-    /* Gray 700 */
+
     --input-bg: #374151;
-    /* Gray 700 */
+
     --danger-color: #f87171;
-    /* Red 400 */
+
     --success-color: #34d399;
-    /* Emerald 400 */
+
 }
 
 body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background-color: var(--bg-color);
-    /* Dark gradient */
     background: linear-gradient(135deg, #111827 0%, #1e1b4b 100%);
     color: var(--text-color);
     margin: 0;
@@ -80,7 +79,7 @@ nav {
     margin-bottom: 1.5rem;
     transition: transform 0.2s, box-shadow 0.2s;
     border: 1px solid var(--border-color);
-    /* Added border for better separation in dark mode */
+
 }
 
 .card:hover {
@@ -102,7 +101,7 @@ nav {
 .btn-primary {
     background-color: var(--primary-color);
     background: linear-gradient(to right, #6366f1, #4f46e5);
-    /* Keep standard gradient or adjust slightly */
+
     color: white;
     box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
 }
@@ -118,7 +117,7 @@ nav {
 .btn-danger {
     background-color: var(--danger-color);
     color: #1f2937;
-    /* Dark text on light red button for contrast? Or keep white. */
+
     color: white;
 }
 
@@ -166,13 +165,13 @@ select:focus {
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
-/* Auth specific */
+
 .auth-container {
     max-width: 400px;
     margin: 4rem auto;
 }
 
-/* Alerts */
+
 .alert {
     padding: 1rem;
     border-radius: 0.375rem;
@@ -181,14 +180,14 @@ select:focus {
 
 .alert-error {
     background-color: rgba(239, 68, 68, 0.2);
-    /* Semi-transparent red */
+
     color: #fca5a5;
     border: 1px solid #7f1d1d;
 }
 
 .alert-success {
     background-color: rgba(16, 185, 129, 0.2);
-    /* Semi-transparent green */
+
     color: #6ee7b7;
     border: 1px solid #064e3b;
 }
@@ -205,7 +204,7 @@ select:focus {
     border: 1px solid #1e3a8a;
 }
 
-/* Table */
+
 table {
     width: 100%;
     border-collapse: collapse;
@@ -220,7 +219,7 @@ td {
 
 th {
     background-color: rgba(255, 255, 255, 0.05);
-    /* Slight highlight */
+
     font-weight: 600;
     text-transform: uppercase;
     font-size: 0.75rem;
@@ -228,7 +227,7 @@ th {
     color: var(--text-secondary);
 }
 
-/* Badges */
+
 .badge {
     padding: 0.25rem 0.5rem;
     border-radius: 9999px;

@@ -11,10 +11,10 @@ class Admin(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(120), nullable=False)
     is_super_admin = db.Column(db.Boolean, default=False)
-    is_force_change_password = db.Column(db.Boolean, default=True) # Force change on first login
-    otp_secret = db.Column(db.String(10), nullable=True) # Temporary OTP storage
+    is_force_change_password = db.Column(db.Boolean, default=True)
+    otp_secret = db.Column(db.String(10), nullable=True)
     
-    # Permissions
+
     perm_manage_elections = db.Column(db.Boolean, default=False)
     perm_manage_electors = db.Column(db.Boolean, default=False)
     perm_manage_admins = db.Column(db.Boolean, default=False)
@@ -46,12 +46,12 @@ class Election(db.Model):
     nomination_start = db.Column(db.DateTime, nullable=False)
     nomination_end = db.Column(db.DateTime, nullable=False)
     
-    # Configuration for candidate fields (0: Hidden, 1: Optional, 2: Required)
+
     config_age = db.Column(db.Integer, default=1) 
-    min_age = db.Column(db.Integer, default=0) # Minimum age requirement (0 = no minimum)
+    min_age = db.Column(db.Integer, default=0)
     config_photo = db.Column(db.Integer, default=1)
     
-    status = db.Column(db.String(20), default='draft') # draft, active, completed
+    status = db.Column(db.String(20), default='draft')
     show_results = db.Column(db.Boolean, default=False)
     allow_nota = db.Column(db.Boolean, default=False)
     allow_phone_voting = db.Column(db.Boolean, default=True)
@@ -64,26 +64,26 @@ class Candidate(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     election_id = db.Column(db.Integer, db.ForeignKey('election.id'), nullable=False)
     name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), nullable=True) # Added email field
+    email = db.Column(db.String(120), nullable=True)
     age = db.Column(db.Integer, nullable=True)
     photo_path = db.Column(db.String(200), nullable=True)
-    status = db.Column(db.String(20), default='pending') # pending, approved, rejected
+    status = db.Column(db.String(20), default='pending')
     votes = db.relationship('Vote', backref='candidate', lazy=True, cascade="all, delete-orphan")
 
 class Elector(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     election_id = db.Column(db.Integer, db.ForeignKey('election.id'), nullable=False)
     name = db.Column(db.String(100), nullable=False)
-    phone = db.Column(db.String(20), unique=True, nullable=True) # Phone number for Firebase Auth
-    email = db.Column(db.String(120), unique=True, nullable=True) # Email for SMTP OTP
-    otp_secret = db.Column(db.String(10), nullable=True) # Secret for Email OTP
-    secret_code = db.Column(db.String(6), nullable=False, default='000000') # 6-digit Secret Voting Code
-    status = db.Column(db.String(20), default='approved') # approved, pending, rejected
+    phone = db.Column(db.String(20), unique=True, nullable=True)
+    email = db.Column(db.String(120), unique=True, nullable=True)
+    otp_secret = db.Column(db.String(10), nullable=True)
+    secret_code = db.Column(db.String(6), nullable=False, default='000000')
+    status = db.Column(db.String(20), default='approved')
     has_voted = db.Column(db.Boolean, default=False)
 
 class Vote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     election_id = db.Column(db.Integer, db.ForeignKey('election.id'), nullable=False)
-    candidate_id = db.Column(db.Integer, db.ForeignKey('candidate.id'), nullable=True) # Null if NOTA (None of the above) or similar, though we assume candidate selection
-    elector_id = db.Column(db.Integer, db.ForeignKey('elector.id'), nullable=True) # Identifying the voter
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidate.id'), nullable=True)
+    elector_id = db.Column(db.Integer, db.ForeignKey('elector.id'), nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
