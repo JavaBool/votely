@@ -1,5 +1,9 @@
 {% extends 'base.html' %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
+{% endblock %}
+
 {% block content %}
 <div class="auth-container">
     <div class="card">
@@ -14,7 +18,8 @@
                 <input type="password" id="password" name="password" required>
             </div>
             <div style="margin-bottom: 1rem; text-align: right;">
-                <a href="{{ url_for('admin.forgot_password') }}" style="font-size: 0.9rem;">Forgot Password?</a>
+                <a href="{{ url_for('admin.forgot_password') }}" class="forgotpassword"
+                    style="font-size: 0.9rem;">Forgot Password?</a>
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%">Login</button>
         </form>
