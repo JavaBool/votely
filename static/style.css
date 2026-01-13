@@ -163,6 +163,28 @@ nav {
     filter: brightness(1.1);
 }
 
+.btn-success {
+    background-color: var(--success-color);
+    color: #ffffff;
+    /* Ensure white text for contrast */
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);
+}
+
+.btn-success:hover {
+    filter: brightness(1.1);
+}
+
+.btn-success:active {
+    transform: translateY(1px);
+}
+
+.btn-success:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--success-color);
+    /* Maintain bg but faded */
+}
+
 .form-group {
     margin-bottom: 1rem;
 }
@@ -298,4 +320,39 @@ th {
 .badge.completed {
     background-color: rgba(59, 130, 246, 0.2);
     color: #60a5fa;
+}
+
+.badge.warning {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+.btn-warning {
+    background-color: #f59e0b;
+    color: #ffffff;
+    box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.4);
+}
+
+.btn-warning:hover {
+    filter: brightness(1.1);
+}
+
+.btn-warning:active {
+    transform: translateY(1px);
+}
+
+.btn-outline-dark {
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    background-color: transparent;
+}
+
+.btn-outline-dark:hover {
+    background-color: var(--input-bg);
+    border-color: var(--text-secondary);
+}
+
+.btn-outline-dark:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }

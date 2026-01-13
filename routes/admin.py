@@ -123,6 +123,15 @@ def edit_election(election_id):
              elif election.status == 'active' and election.end_time <= now:
                  election.status = 'completed'
                  flash('Election marked as completed because end time is in the past.', 'info')
+             elif election.status == 'hold':
+                 from models import RevoteLink
+                 RevoteLink.query.filter_by(election_id=election.id).delete()
+                 if election.end_time > now:
+                     election.status = 'active'
+                     flash('Election reactivated from HOLD. Pending revote links have been deleted.', 'warning')
+                 else:
+                     election.status = 'completed'
+                     flash('Election moved from HOLD to Completed. Pending revote links deleted.', 'warning')
 
 
              if election.show_results:
@@ -665,6 +674,21 @@ def initiate_release_results(election_id):
         flash('Results are already released.', 'warning')
         return redirect(url_for('admin.manage_election', election_id=election_id))
         
+    if election.status == 'hold':
+        # Check if all revote links are used
+        from models import RevoteLink
+        pending_links = RevoteLink.query.filter_by(election_id=election.id, is_used=False).all()
+        
+        if not pending_links:
+             # All used, can proceed to release (acting as if completed now)
+             pass 
+        else:
+             # Pending votes exist
+             electors = []
+             for link in pending_links:
+                 electors.append({'name': link.elector.name, 'email': link.elector.email, 'phone': link.elector.phone})
+             return render_template('admin/hold_status.html', election=election, pending_voters=electors)
+
     otp = str(random.randint(100000, 999999))
     session['release_election_id'] = election.id
     store_otp_in_session('release_otp', otp)
@@ -688,115 +712,307 @@ def verify_release_results_otp():
             election = Election.query.get(election_id)
             
             if election:
-                election.show_results = True
-                db.session.commit()
+                # DUPLICATE CHECK
+                from sqlalchemy import func
+                from models import Vote, Elector
                 
+                duplicates = db.session.query(Vote.elector_id, func.count(Vote.id))\
+                    .filter(Vote.election_id == election_id)\
+                    .group_by(Vote.elector_id)\
+                    .having(func.count(Vote.id) > 1)\
+                    .all()
 
-                try:
-                    from models import Candidate, Admin, Vote
-                    from utils import send_notification_email
+                if duplicates:
+                    # Found duplicates!
+                    duplicate_voters = []
+                    for dup in duplicates:
+                        elector_id = dup[0]
+                        count = dup[1]
+                        elector = Elector.query.get(elector_id)
+                        duplicate_voters.append({
+                            'id': elector.id,
+                            'name': elector.name,
+                            'email': elector.email,
+                            'phone': elector.phone,
+                            'vote_count': count
+                        })
                     
+                    # Store session verify so we don't need OTP again for resolution
+                    session['release_verified_election_id'] = election_id
+                    session.pop('release_election_id', None) # Switch to verified session
+                    session.pop('release_otp', None)
 
+                    return render_template('admin/duplicate_resolution.html', election=election, voters=duplicate_voters)
 
-                    candidates = Candidate.query.filter_by(election_id=election.id).all()
-                    
-                    results = []
-                    for cand in candidates:
-                        count = Vote.query.filter_by(candidate_id=cand.id).count()
-                        results.append({'name': cand.name, 'votes': count})
-                    
-                    results.sort(key=lambda x: x['votes'], reverse=True)
-                    
-                    electors = Elector.query.filter_by(election_id=election.id).all()
-                    voted_list = [e for e in electors if e.has_voted]
-                    not_voted_list = [e for e in electors if not e.has_voted]
-                    
-                    def build_elector_rows(elector_list, show_phone):
-                        rows = ""
-                        for e in elector_list:
-                            phone_cell = f"<td style='padding:8px; border:1px solid #ddd;'>{e.phone or '-'}</td>" if show_phone else ""
-                            rows += f"<tr><td style='padding:8px; border:1px solid #ddd;'>{e.name}</td><td style='padding:8px; border:1px solid #ddd;'>{e.email or '-'}</td>{phone_cell}</tr>"
-                        return rows
-
-                    show_phone = election.allow_phone_voting
-                    phone_header = "<th style='padding:8px; border:1px solid #ddd; background-color:#f2f2f2;'>Phone</th>" if show_phone else ""
-                    
-                    html_body = f"""
-                    <h2 style="color: #333;">Election Results: {election.title}</h2>
-                    <p>Results have been officially released.</p>
-                    
-                    <h3 style="border-bottom: 2px solid #5a5a5a; padding-bottom: 5px;">Rank List</h3>
-                    <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
-                        <thead>
-                            <tr style="background-color: #f2f2f2;">
-                                <th style="padding:12px; border:1px solid #ddd; text-align:left;">Rank</th>
-                                <th style="padding:12px; border:1px solid #ddd; text-align:left;">Candidate</th>
-                                <th style="padding:12px; border:1px solid #ddd; text-align:left;">Votes</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                    """
-                    
-                    for idx, res in enumerate(results, 1):
-                        is_winner = "font-weight:bold; background-color:#e8f5e9;" if idx == 1 else ""
-                        html_body += f"<tr style='{is_winner}'><td style='padding:8px; border:1px solid #ddd;'>{idx}</td><td style='padding:8px; border:1px solid #ddd;'>{res['name']}</td><td style='padding:8px; border:1px solid #ddd;'>{res['votes']}</td></tr>"
-                    
-                    html_body += """
-                        </tbody>
-                    </table>
-                    
-                    <h3 style="border-bottom: 2px solid #28a745; padding-bottom: 5px; color: #28a745;">Voted Electors</h3>
-                    <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
-                        <thead>
-                            <tr>
-                                <th style="padding:8px; border:1px solid #ddd; background-color:#f2f2f2;'>Name</th>
-                                <th style="padding:8px; border:1px solid #ddd; background-color:#f2f2f2;'>Email</th>
-                                {phone_header}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {voted_rows}
-                        </tbody>
-                    </table>
-                    
-                    <h3 style="border-bottom: 2px solid #dc3545; padding-bottom: 5px; color: #dc3545;">Not Voted Electors</h3>
-                    <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
-                        <thead>
-                            <tr>
-                                <th style="padding:8px; border:1px solid #ddd; background-color:#f2f2f2;'>Name</th>
-                                <th style="padding:8px; border:1px solid #ddd; background-color:#f2f2f2;'>Email</th>
-                                {phone_header}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {not_voted_rows}
-                        </tbody>
-                    </table>
-                    """
-                    
-                    html_body = html_body.format(
-                        phone_header=phone_header,
-                        voted_rows=build_elector_rows(voted_list, show_phone) or "<tr><td colspan='3'>None</td></tr>",
-                        not_voted_rows=build_elector_rows(not_voted_list, show_phone) or "<tr><td colspan='3'>None</td></tr>"
-                    )
-
-                    # Send to all admins
-                    admins = Admin.query.all()
-                    for admin in admins:
-                        send_notification_email(admin.email, f"Official Results: {election.title}", html_body)
-                        
-                    flash('Results released. Detailed report sent to all admins.', 'success')
-                except Exception as e:
-                    print(f"Error sending result emails: {e}")
-                    flash(f'Results released, but failed to send result emails: {e}', 'warning')
-            
-            session.pop('release_election_id', None)
-            session.pop('release_otp', None) # Clear OTP from session
-            return redirect(url_for('admin.manage_election', election_id=election_id))
+                # No duplicates, proceed to release
+                return perform_release_results(election)
+            else:
+                 flash('Election not found.', 'error')
+                 return redirect(url_for('admin.dashboard'))
         else:
             flash(msg, 'error')
             
     return render_template('admin/verify_otp_generic.html', title="Confirm Release Results")
+
+def perform_release_results(election):
+    try:
+        election.show_results = True
+        
+        # Helper will check if links exist, report if so, and delete them.
+        # Safe to call for any release action to ensure no dangling links.
+        from utils import send_revote_report_and_cleanup
+        send_revote_report_and_cleanup(election, current_user.email)
+        
+        # If it was on hold, now it is completed
+        if election.status == 'hold':
+            election.status = 'completed'
+            
+        db.session.commit()
+        
+        from models import Candidate, Admin, Vote, Elector
+        from utils import send_notification_email
+        
+        candidates = Candidate.query.filter_by(election_id=election.id).all()
+        
+        results = []
+        for cand in candidates:
+            count = Vote.query.filter_by(candidate_id=cand.id).count()
+            results.append({'name': cand.name, 'votes': count})
+        
+        results.sort(key=lambda x: x['votes'], reverse=True)
+        
+        electors = Elector.query.filter_by(election_id=election.id).all()
+        voted_list = [e for e in electors if e.has_voted]
+        not_voted_list = [e for e in electors if not e.has_voted]
+        
+        def build_elector_rows(elector_list, show_phone):
+            rows = ""
+            for e in elector_list:
+                phone_cell = f"<td style='padding:8px; border:1px solid #ddd;'>{e.phone or '-'}</td>" if show_phone else ""
+                rows += f"<tr><td style='padding:8px; border:1px solid #ddd;'>{e.name}</td><td style='padding:8px; border:1px solid #ddd;'>{e.email or '-'}</td>{phone_cell}</tr>"
+            return rows
+
+        show_phone = election.allow_phone_voting
+        phone_header = "<th style='padding:8px; border:1px solid #ddd; background-color:#f2f2f2;'>Phone</th>" if show_phone else ""
+        
+        html_body = f"""
+        <h2 style="color: #333;">Election Results: {election.title}</h2>
+        <p>Results have been officially released.</p>
+        
+        <h3 style="border-bottom: 2px solid #5a5a5a; padding-bottom: 5px;">Rank List</h3>
+        <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="padding:12px; border:1px solid #ddd; text-align:left;">Rank</th>
+                    <th style="padding:12px; border:1px solid #ddd; text-align:left;">Candidate</th>
+                    <th style="padding:12px; border:1px solid #ddd; text-align:left;">Votes</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+        
+        for idx, res in enumerate(results, 1):
+            is_winner = "font-weight:bold; background-color:#e8f5e9;" if idx == 1 else ""
+            html_body += f"<tr style='{is_winner}'><td style='padding:8px; border:1px solid #ddd;'>{idx}</td><td style='padding:8px; border:1px solid #ddd;'>{res['name']}</td><td style='padding:8px; border:1px solid #ddd;'>{res['votes']}</td></tr>"
+        
+        html_body += """
+            </tbody>
+        </table>
+        
+        <h3 style="border-bottom: 2px solid #28a745; padding-bottom: 5px; color: #28a745;">Voted Electors</h3>
+        <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+                <tr>
+                    <th style="padding:8px; border:1px solid #ddd; background-color:#f2f2f2;'>Name</th>
+                    <th style="padding:8px; border:1px solid #ddd; background-color:#f2f2f2;'>Email</th>
+                    {phone_header}
+                </tr>
+            </thead>
+            <tbody>
+                {voted_rows}
+            </tbody>
+        </table>
+        
+        <h3 style="border-bottom: 2px solid #dc3545; padding-bottom: 5px; color: #dc3545;">Not Voted Electors</h3>
+        <table style="width:100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+                <tr>
+                    <th style="padding:8px; border:1px solid #ddd; background-color:#f2f2f2;'>Name</th>
+                    <th style="padding:8px; border:1px solid #ddd; background-color:#f2f2f2;'>Email</th>
+                    {phone_header}
+                </tr>
+            </thead>
+            <tbody>
+                {not_voted_rows}
+            </tbody>
+        </table>
+        """
+        
+        html_body = html_body.format(
+            phone_header=phone_header,
+            voted_rows=build_elector_rows(voted_list, show_phone) or "<tr><td colspan='3'>None</td></tr>",
+            not_voted_rows=build_elector_rows(not_voted_list, show_phone) or "<tr><td colspan='3'>None</td></tr>"
+        )
+
+        admins = Admin.query.all()
+        for admin in admins:
+            send_notification_email(admin.email, f"Official Results: {election.title}", html_body)
+            
+        flash('Results released. Detailed report sent to all admins.', 'success')
+    except Exception as e:
+        print(f"Error sending result emails: {e}")
+        flash(f'Results released, but failed to send result emails: {e}', 'warning')
+    
+    session.pop('release_election_id', None)
+    session.pop('release_otp', None)
+    session.pop('release_verified_election_id', None)
+    
+    return redirect(url_for('admin.manage_election', election_id=election.id))
+
+@admin_bp.route('/election/resolve/remove', methods=['POST'])
+@login_required
+def resolve_duplicates_remove():
+    election_id = session.get('release_verified_election_id')
+    if not election_id:
+        return redirect(url_for('admin.dashboard'))
+        
+    election = Election.query.get_or_404(election_id)
+    voter_ids = request.form.getlist('voter_ids')
+    
+    from models import Vote, Elector
+    
+    for vid in voter_ids:
+        # Delete ALL votes for this duplicate elector
+        Vote.query.filter_by(election_id=election_id, elector_id=vid).delete()
+        
+        # Reset voted status so they don't show as voted in admin UI/Stats
+        elector = Elector.query.get(vid)
+        if elector:
+            elector.has_voted = False
+        
+    db.session.commit()
+    flash('Duplicate votes removed.', 'success')
+    return perform_release_results(election)
+
+@admin_bp.route('/election/resolve/revote', methods=['POST'])
+@login_required
+def resolve_duplicates_revote():
+    election_id = session.get('release_verified_election_id')
+    if not election_id:
+        return redirect(url_for('admin.dashboard'))
+        
+    election = Election.query.get_or_404(election_id)
+    voter_ids = request.form.getlist('voter_ids')
+    
+    from models import Vote, Elector, RevoteLink
+    from utils import send_notification_email
+    import secrets
+    
+    election.status = 'hold'
+    db.session.commit()
+    
+    count = 0
+    for vid in voter_ids:
+        elector = Elector.query.get(vid)
+        if not elector: continue
+        
+        # 1. Delete existing votes
+        Vote.query.filter_by(election_id=election_id, elector_id=vid).delete()
+        elector.has_voted = False
+        
+        # 2. Generate Private Link
+        token = secrets.token_urlsafe(32)
+        link = RevoteLink(election_id=election_id, elector_id=vid, token=token)
+        db.session.add(link)
+        
+        # 3. Send Email
+        if elector.email:
+            revote_url = url_for('public.revote_access', token=token, _external=True)
+            subject = f"ACTION REQUIRED: Re-vote for {election.title}"
+            body = render_template('email/revote_link.html', variable_name='variable_value', elector=elector, election=election, link=revote_url)
+            # Render template returns string, we can pass it directly.
+            # I need to create the template properly.
+            
+            send_notification_email(elector.email, subject, body)
+            count += 1
+            
+    db.session.commit()
+    flash(f'Election put on HOLD. {count} revote links sent.', 'warning')
+    
+    session.pop('release_verified_election_id', None)
+    return redirect(url_for('admin.manage_election', election_id=election_id))
+
+@admin_bp.route('/election/<int:election_id>/export_revote_links', methods=['POST'])
+@login_required
+def export_revote_links(election_id):
+    if not current_user.can_manage_elections:
+        flash('Access denied.', 'error')
+        return redirect(url_for('admin.manage_election', election_id=election_id))
+
+    election = Election.query.get_or_404(election_id)
+    
+    link_ids = request.form.getlist('link_ids')
+    if not link_ids:
+        flash('No revote links selected for export.', 'warning')
+        return redirect(url_for('admin.manage_election', election_id=election_id))
+
+    from models import RevoteLink
+    
+    si = io.StringIO()
+    cw = csv.writer(si)
+    cw.writerow(['Name', 'Email', 'Phone', 'Link Status', 'Private Link', 'Sent At'])
+    
+    # Filter links
+    selected_links = [l for l in election.revote_links if str(l.id) in link_ids]
+    
+    for link in selected_links:
+        status = "Used" if link.is_used else "Pending"
+        url = url_for('public.revote_access', token=link.token, _external=True)
+        cw.writerow([link.elector.name, link.elector.email or '', link.elector.phone or '', status, url, link.created_at])
+        
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = f"attachment; filename=revote_links_{election_id}.csv"
+    output.headers["Content-type"] = "text/csv"
+    return output
+
+@admin_bp.route('/election/<int:election_id>/force_release', methods=['POST'])
+@login_required
+def force_release_hold(election_id):
+    if not current_user.can_manage_elections:
+         return redirect(url_for('admin.dashboard'))
+         
+    election = Election.query.get_or_404(election_id)
+    if election.status != 'hold':
+        return redirect(url_for('admin.manage_election', election_id=election_id))
+        
+    # Just release, ignoring pending
+    return perform_release_results(election)
+
+@admin_bp.route('/election/<int:election_id>/resend_links', methods=['POST'])
+@login_required
+def resend_hold_links(election_id):
+    if not current_user.can_manage_elections:
+         return redirect(url_for('admin.dashboard'))
+         
+    election = Election.query.get_or_404(election_id)
+    if election.status != 'hold':
+        return redirect(url_for('admin.manage_election', election_id=election_id))
+        
+    from models import RevoteLink
+    from utils import send_notification_email
+    
+    pending_links = RevoteLink.query.filter_by(election_id=election_id, is_used=False).all()
+    count = 0
+    for link in pending_links:
+        if link.elector.email:
+             revote_url = url_for('public.revote_access', token=link.token, _external=True)
+             subject = f"REMINDER: Re-vote for {election.title}"
+             body = render_template('email/revote_link.html', elector=link.elector, election=election, link=revote_url)
+             send_notification_email(link.elector.email, subject, body)
+             count += 1
+             
+    flash(f'Resent {count} emails.', 'success')
+    return redirect(url_for('admin.initiate_release_results', election_id=election_id))
 
 @admin_bp.route('/admins', methods=['GET', 'POST'])
 @login_required
@@ -1219,7 +1435,7 @@ def reject_elector_request(elector_id):
     flash(f'Request for {name} rejected and removed.', 'success')
     return redirect(url_for('admin.manage_election', election_id=election_id))
 
-@admin_bp.route('/election/<int:election_id>/export_electors')
+@admin_bp.route('/election/<int:election_id>/export_electors', methods=['POST'])
 @login_required
 def export_electors(election_id):
     if not current_user.can_manage_electors:
@@ -1228,18 +1444,56 @@ def export_electors(election_id):
 
     election = Election.query.get_or_404(election_id)
     
+    elector_ids = request.form.getlist('elector_ids')
+    if not elector_ids:
+        flash('No electors selected for export.', 'warning')
+        return redirect(url_for('admin.manage_election', election_id=election_id))
 
     si = io.StringIO()
     cw = csv.writer(si)
     cw.writerow(['Name', 'Email', 'Phone'])
     
-    for elector in election.electors:
+    # Filter electors
+    selected_electors = [e for e in election.electors if str(e.id) in elector_ids]
+    
+    for elector in selected_electors:
         cw.writerow([elector.name, elector.email or '', elector.phone or ''])
         
     output = make_response(si.getvalue())
     output.headers["Content-Disposition"] = f"attachment; filename=electors_{election_id}.csv"
     output.headers["Content-type"] = "text/csv"
     return output
+    return output
+
+@admin_bp.route('/election/<int:election_id>/export_nominations', methods=['POST'])
+@login_required
+def export_nominations(election_id):
+    if not current_user.can_manage_elections:
+        flash('Access denied.', 'error')
+        return redirect(url_for('admin.manage_election', election_id=election_id))
+
+    election = Election.query.get_or_404(election_id)
+    
+    candidate_ids = request.form.getlist('candidate_ids')
+    if not candidate_ids:
+        flash('No candidates selected for export.', 'warning')
+        return redirect(url_for('admin.manage_election', election_id=election_id))
+    
+    si = io.StringIO()
+    cw = csv.writer(si)
+    cw.writerow(['Name', 'Email', 'Age', 'Status'])
+    
+    # Filter candidates
+    selected_candidates = [c for c in election.candidates if str(c.id) in candidate_ids]
+    
+    for candidate in selected_candidates:
+        cw.writerow([candidate.name, candidate.email or '', candidate.age or '', candidate.status])
+        
+    output = make_response(si.getvalue())
+    output.headers["Content-Disposition"] = f"attachment; filename=nominations_{election_id}.csv"
+    output.headers["Content-type"] = "text/csv"
+    return output
+
 @admin_bp.route('/election/<int:election_id>/export_secret_codes/initiate', methods=['POST'])
 @login_required
 def initiate_export_secret_codes(election_id):

@@ -11,7 +11,8 @@
         <div class="card" style="margin-bottom: 2rem;">
             <h1 style="margin-top: 0; display: flex; justify-content: space-between; align-items: center;">
                 {{ election.title }}
-                <span class="badge {{ 'completed' if election.status == 'completed' else 'active' }}"
+                <span
+                    class="badge {{ 'completed' if election.status == 'completed' else 'warning' if election.status == 'hold' else 'active' }}"
                     style="font-size: 1rem; text-transform: uppercase;">
                     {{ election.status }}
                 </span>

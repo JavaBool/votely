@@ -8,3 +8,10 @@ email_config.json
 instance/
 .pytest_cache/
 .DS_Store
+
+# Utility Scripts
+add_duplicate.py
+add_duplicates.py
+db_update.py
+check_revote_links.py
+cleanup_rejected.py

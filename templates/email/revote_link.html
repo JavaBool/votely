@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .header {
+            background-color: #f8dbdb;
+            padding: 10px;
+            text-align: center;
+            border-bottom: 2px solid #dc3545;
+        }
+
+        .content {
+            padding: 20px 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .footer {
+            font-size: 12px;
+            color: #777;
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="margin:0; color: #dc3545;">Action Required: Vote Irregularity Detected</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{ elector.name }},</p>
+            <p>We detected an irregularity with your vote submission for the election <strong>{{ election.title
+                    }}</strong> (duplicate votes recorded). To ensure the integrity of the election, your previous votes
+                have been cancelled.</p>
+            <p>Please use the exclusive, one-time private link below to cast your final, definitive vote:</p>
+            <p style="text-align: center; margin: 30px 0;">
+                <a href="{{ link }}" class="btn">Vote Now</a>
+            </p>
+            <p><strong>Note:</strong> This link is unique to you and can only be used once. Please do not share it.</p>
+        </div>
+        <div class="footer">
+            <p>If you did not attempt to vote multiple times, please contact the election administrator immediately.</p>
+        </div>
+    </div>
+</body>
+
+</html>

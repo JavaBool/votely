@@ -36,6 +36,13 @@
             {% else %}
             <span class="badge success">Results Public</span>
             {% endif %}
+            {% elif election.status == 'hold' %}
+            <form action="{{ url_for('admin.force_release_hold', election_id=election.id) }}" method="POST"
+                onsubmit="return confirm('Proceed releasing results? Any pending private links will become invalid.');">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-check-circle"></i> Proceed Releasing Results
+                </button>
+            </form>
             {% endif %}
 
 
@@ -76,6 +83,86 @@
 
 
 <div style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+    {% if election.status == 'hold' %}
+    <div style="grid-column: 1 / -1;" class="card border-warning">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0 text-dark"><i class="fas fa-exclamation-circle"></i> Election on HOLD - Revote Status</h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('admin.export_revote_links', election_id=election.id) }}" method="POST">
+                <div class="mb-2" style="display: flex; justify-content: space-between; align-items: center;">
+                    <button type="submit" id="exportLinksBtn" class="btn btn-success btn-sm" disabled>Export
+                        Selected CSV</button>
+                    <input type="text" id="revoteSearch" class="form-control form-control-sm" style="width: 200px;"
+                        placeholder="Search Revote Links...">
+                </div>
+                <div class="table-responsive">
+                    <table id="revoteTable" class="table table-sm table-bordered mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;"><input type="checkbox" id="selectAllLinks"></th>
+                                <th style="width: 50px;">S.No</th>
+                                <th>Voter Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Status</th>
+                                <th>Link Sent At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for link in election.revote_links %}
+                            <tr>
+                                <td><input type="checkbox" name="link_ids" value="{{ link.id }}" class="link-checkbox">
+                                </td>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ link.elector.name }}</td>
+                                <td>{{ link.elector.email or '-' }}</td>
+                                <td>{{ link.elector.phone or '-' }}</td>
+                                <td>
+                                    {% if link.is_used %}
+                                    <span class="badge success">Revoted</span>
+                                    {% else %}
+                                    <span class="badge warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ link.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const selectAllLinks = document.getElementById('selectAllLinks');
+                    const linkCheckboxes = document.querySelectorAll('.link-checkbox');
+                    const exportLinksBtn = document.getElementById('exportLinksBtn');
+
+                    function updateLinkButtonState() {
+                        if (!exportLinksBtn) return;
+                        const anyChecked = Array.from(linkCheckboxes).some(cb => cb.checked);
+                        exportLinksBtn.disabled = !anyChecked;
+                    }
+
+                    if (selectAllLinks) {
+                        selectAllLinks.addEventListener('change', function () {
+                            linkCheckboxes.forEach(cb => cb.checked = selectAllLinks.checked);
+                            updateLinkButtonState();
+                        });
+                    }
+
+                    linkCheckboxes.forEach(cb => {
+                        cb.addEventListener('change', function () {
+                            updateLinkButtonState();
+                            if (!cb.checked && selectAllLinks) selectAllLinks.checked = false;
+                        });
+                    });
+                });
+            </script>
+        </div>
+    </div>
+    {% endif %}
+
     <div style="background-color: var(--input-bg); padding: 1rem; border-radius: 5px; text-align: center;">
         <div style="font-size: 0.875rem; color: var(--text-secondary);">Total Electors</div>
         <div style="font-size: 1.5rem; font-weight: bold;">{{ total_electors }}</div>
@@ -100,55 +187,69 @@
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+<div style="margin-top: 3rem; display: grid; grid-template-columns: 1fr; gap: 2rem;">
 
     <div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h2>Nominations</h2>
-        </div>
-        <div class="card">
-            {% if election.candidates %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for candidate in election.candidates %}
-                    {% if candidate.status != 'nota' %}
-                    <tr>
-                        <td>{{ candidate.name }}
-                            {% if candidate.age %}<br><small>Age: {{ candidate.age }}</small>{% endif %}
-                            {% if candidate.photo_path %}<br><small><a
-                                    href="{{ url_for('static', filename=candidate.photo_path) }}" target="_blank">View
-                                    Photo</a></small>{% endif %}
-                        </td>
-                        <td>
-                            <span class="badge {{ candidate.status }}">{{ candidate.status|upper }}</span>
-                        </td>
-                        <td>
-                            {% if candidate.status == 'pending' or candidate.status == 'rejected' %}
-                            <a href="{{ url_for('admin.approve_candidate', candidate_id=candidate.id) }}"
-                                style="color: var(--success-color); margin-right: 0.5rem;">Approve</a>
-                            {% endif %}
-                            {% if candidate.status == 'pending' or candidate.status == 'approved' %}
-                            <a href="{{ url_for('admin.reject_candidate', candidate_id=candidate.id) }}"
-                                class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"
-                                onclick="return confirm('Are you sure you want to reject this candidate?');">Reject</a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endif %}
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p>No nominations yet.</p>
-            {% endif %}
-        </div>
+        <form action="{{ url_for('admin.export_nominations', election_id=election.id) }}" method="POST">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <h2 class="mb-0">Nominations</h2>
+                    <button type="submit" id="exportNominationsBtn" class="btn btn-success btn-sm" disabled>Export
+                        Selected CSV</button>
+                </div>
+                <input type="text" id="nominationsSearch" class="form-control form-control-sm" style="width: 200px;"
+                    placeholder="Search Nominations...">
+            </div>
+            <div class="card">
+                {% if election.candidates %}
+                <table id="nominationsTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAllNominations"></th>
+                            <th style="width: 50px;">S.No</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for candidate in election.candidates | rejectattr('status', 'equalto', 'nota') %}
+                        <tr>
+                            <td><input type="checkbox" name="candidate_ids" value="{{ candidate.id }}"
+                                    class="nomination-checkbox"></td>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ candidate.name }}
+                                {% if candidate.age %}<br><small>Age: {{ candidate.age }}</small>{% endif %}
+                                {% if candidate.photo_path %}<br><small><a
+                                        href="{{ url_for('static', filename=candidate.photo_path) }}"
+                                        target="_blank">View
+                                        Photo</a></small>{% endif %}
+                            </td>
+                            <td>{{ candidate.email or '-' }}</td>
+                            <td>
+                                <span class="badge {{ candidate.status }}">{{ candidate.status|upper }}</span>
+                            </td>
+                            <td>
+                                {% if candidate.status == 'pending' or candidate.status == 'rejected' %}
+                                <a href="{{ url_for('admin.approve_candidate', candidate_id=candidate.id) }}"
+                                    style="color: var(--success-color); margin-right: 0.5rem;">Approve</a>
+                                {% endif %}
+                                {% if candidate.status == 'pending' or candidate.status == 'approved' %}
+                                <a href="{{ url_for('admin.reject_candidate', candidate_id=candidate.id) }}"
+                                    class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"
+                                    onclick="return confirm('Are you sure you want to reject this candidate?');">Reject</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>No nominations yet.</p>
+                {% endif %}
+            </div>
+        </form>
     </div>
 
 
@@ -277,30 +378,31 @@
             <div style="margin-top: 1rem;">
                 {% if election.electors %}
                 <form id="bulkDeleteForm" action="{{ url_for('admin.delete_electors_bulk', election_id=election.id) }}"
-                    method="POST"
-                    onsubmit="return confirm('Are you sure you want to delete selected electors? This action cannot be undone and will remove their votes.');">
+                    method="POST">
 
-                    {% if election.status != 'completed' %}
                     <div class="mb-2" style="display: flex; justify-content: space-between; align-items: center;">
-                        <button type="submit" id="deleteSelectedBtn" class="btn btn-danger btn-sm" disabled>Delete
-                            Selected</button>
+                        <div style="display: flex; gap: 0.5rem;">
+                            {% if election.status != 'completed' %}
+                            <button type="submit" id="deleteSelectedBtn" class="btn btn-danger btn-sm" disabled
+                                onclick="return confirm('Are you sure you want to delete selected electors? This action cannot be undone and will remove their votes.');">Delete
+                                Selected</button>
+                            {% endif %}
+                            <button type="submit" id="exportSelectedBtn"
+                                formaction="{{ url_for('admin.export_electors', election_id=election.id) }}"
+                                class="btn btn-success btn-sm" disabled>
+                                Export Selected
+                            </button>
+                        </div>
                         <input type="text" id="electorSearch" class="form-control form-control-sm" style="width: 250px;"
                             placeholder="Search electors...">
                     </div>
-                    {% else %}
-                    <div class="mb-2" style="display: flex; justify-content: flex-end;">
-                        <input type="text" id="electorSearch" class="form-control form-control-sm" style="width: 250px;"
-                            placeholder="Search electors...">
-                    </div>
-                    {% endif %}
 
                     <div style="max-height: 400px; overflow-y: auto;">
-                        <table>
+                        <table id="electorsTable">
                             <thead style="position: sticky; top: 0; background-color: var(--card-bg); z-index: 10;">
                                 <tr>
-                                    {% if election.status != 'completed' %}
                                     <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
-                                    {% endif %}
+                                    <th style="width: 50px;">S.No</th>
                                     {% if election.allow_phone_voting %}<th>Phone</th>{% endif %}
                                     <th>Email</th>
                                     <th>Name</th>
@@ -312,10 +414,9 @@
                                 {% for elector in election.electors %}
                                 {% if elector.status == 'approved' %}
                                 <tr>
-                                    {% if election.status != 'completed' %}
                                     <td><input type="checkbox" name="elector_ids" value="{{ elector.id }}"
                                             class="elector-checkbox"></td>
-                                    {% endif %}
+                                    <td>{{ loop.index }}</td>
                                     {% if election.allow_phone_voting %}<td>{{ elector.phone or '-' }}</td>{% endif %}
                                     <td>{{ elector.email or '-' }}</td>
                                     <td>{{ elector.name or '-' }}</td>
@@ -365,12 +466,19 @@
                     const selectAll = document.getElementById('selectAll');
                     const checkboxes = document.querySelectorAll('.elector-checkbox');
                     const deleteBtn = document.getElementById('deleteSelectedBtn');
+                    const exportBtn = document.getElementById('exportSelectedBtn');
 
                     function updateButtonState() {
-                        if (!deleteBtn) return;
                         const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
-                        deleteBtn.disabled = !anyChecked;
-                        deleteBtn.innerText = anyChecked ? "Delete Selected (" + Array.from(checkboxes).filter(cb => cb.checked).length + ")" : "Delete Selected";
+                        const count = Array.from(checkboxes).filter(cb => cb.checked).length;
+
+                        if (deleteBtn) {
+                            deleteBtn.disabled = !anyChecked;
+                            deleteBtn.innerText = anyChecked ? "Delete Selected (" + count + ")" : "Delete Selected";
+                        }
+                        if (exportBtn) {
+                            exportBtn.disabled = !anyChecked;
+                        }
                     }
 
                     if (selectAll) {
@@ -391,23 +499,53 @@
                         });
                     });
 
-                    // Search Functionality
-                    const searchInput = document.getElementById('electorSearch');
-                    if (searchInput) {
-                        searchInput.addEventListener('input', function () {
-                            const filter = this.value.toLowerCase();
-                            const rows = document.querySelectorAll('tbody tr');
+                    // Reusable Table Search Function
+                    function setupTableSearch(inputId, tableId) {
+                        const input = document.getElementById(inputId);
+                        const table = document.getElementById(tableId);
 
-                            rows.forEach(row => {
-                                const text = row.innerText.toLowerCase();
-                                if (text.indexOf(filter) > -1) {
-                                    row.style.display = "";
-                                } else {
-                                    row.style.display = "none";
-                                }
+                        if (input && table) {
+                            input.addEventListener('input', function () {
+                                const filter = this.value.toLowerCase();
+                                const rows = table.querySelectorAll('tbody tr');
+
+                                rows.forEach(row => {
+                                    const text = row.innerText.toLowerCase();
+                                    row.style.display = text.indexOf(filter) > -1 ? "" : "none";
+                                });
                             });
+                        }
+                    }
+
+                    // Initialize Search for all tables
+                    setupTableSearch('electorsTable', 'electorSearch'); // ID order swapped in previous call
+                    setupTableSearch('revoteSearch', 'revoteTable');
+                    setupTableSearch('nominationsSearch', 'nominationsTable');
+
+                    // Nominations Checkbox Logic
+                    const selectAllNom = document.getElementById('selectAllNominations');
+                    const nomCheckboxes = document.querySelectorAll('.nomination-checkbox');
+                    const exportNomBtn = document.getElementById('exportNominationsBtn');
+
+                    function updateNomButtonState() {
+                        if (!exportNomBtn) return;
+                        const anyChecked = Array.from(nomCheckboxes).some(cb => cb.checked);
+                        exportNomBtn.disabled = !anyChecked;
+                    }
+
+                    if (selectAllNom) {
+                        selectAllNom.addEventListener('change', function () {
+                            nomCheckboxes.forEach(cb => cb.checked = selectAllNom.checked);
+                            updateNomButtonState();
                         });
                     }
+
+                    nomCheckboxes.forEach(cb => {
+                        cb.addEventListener('change', function () {
+                            updateNomButtonState();
+                            if (!cb.checked && selectAllNom) selectAllNom.checked = false;
+                        });
+                    });
                 });
 
                 function openDurationModal(title, actionUrl, defaultMinutes) {

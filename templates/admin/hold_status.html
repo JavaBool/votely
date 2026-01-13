@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0"><i class="fas fa-pause-circle"></i> Election on HOLD</h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">This election is currently in <strong>HOLD</strong> state awaiting re-votes from
+                    duplicate cases.</p>
+                <div class="alert alert-info">
+                    <strong>Pending Voters:</strong> The following electors have received private links but have not
+                    used them yet.
+                </div>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for voter in pending_voters %}
+                            <tr>
+                                <td>{{ voter.name }}</td>
+                                <td>{{ voter.email or '-' }}</td>
+                                <td>{{ voter.phone or '-' }}</td>
+                                <td class="text-warning">Pending</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <hr>
+                <h5>Actions:</h5>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <form action="{{ url_for('admin.force_release_hold', election_id=election.id) }}" method="POST"
+                            onsubmit="return confirm('Ensure all voting is final? Any pending private links will become invalid.');">
+                            <button type="submit" class="btn btn-success btn-block">
+                                <i class="fas fa-check-circle"></i> Continue Releasing
+                            </button>
+                            <small class="text-muted">Ignore pending voters and release results now.</small>
+                        </form>
+                    </div>
+                    <div class="col-md-6">
+                        <form action="{{ url_for('admin.resend_hold_links', election_id=election.id) }}" method="POST">
+                            <button type="submit" class="btn btn-secondary btn-block">
+                                <i class="fas fa-paper-plane"></i> Wait & Resend Emails
+                            </button>
+                            <small class="text-muted">Resend private links to pending voters and stay on hold.</small>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-center">
+                    <a href="{{ url_for('admin.manage_election', election_id=election.id) }}"
+                        class="btn btn-link text-muted">Back to Election Management</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

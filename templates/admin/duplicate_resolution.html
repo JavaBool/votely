@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-lg border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Duplicate Votes Detected</h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">The system detected that the following electors have cast multiple votes. You must
+                    resolve this before releasing the results.</p>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Vote Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for voter in voters %}
+                            <tr>
+                                <td>{{ voter.name }}</td>
+                                <td>{{ voter.email or '-' }}</td>
+                                <td>{{ voter.phone or '-' }}</td>
+                                <td class="text-danger font-weight-bold">{{ voter.vote_count }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <hr>
+                <h5>Resolution Options:</h5>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <form action="{{ url_for('admin.resolve_duplicates_remove') }}" method="POST"
+                        onsubmit="return confirm('Are you sure? All votes from these users will be DELETED and results released immediately.');">
+                        {% for voter in voters %}
+                        <input type="hidden" name="voter_ids" value="{{ voter.id }}">
+                        {% endfor %}
+                        <button type="submit" class="btn btn-outline-danger btn-lg">
+                            <i class="fas fa-trash"></i> Remove Votes & Release
+                        </button>
+                        <small class="d-block text-muted mt-2" style="max-width: 300px;">
+                            Delete all votes by these users. They will be excluded from the final count.
+                        </small>
+                    </form>
+
+                    <form action="{{ url_for('admin.resolve_duplicates_revote') }}" method="POST"
+                        onsubmit="return confirm('Election will be put on HOLD. Links will be sent. Proceed?');">
+                        {% for voter in voters %}
+                        <input type="hidden" name="voter_ids" value="{{ voter.id }}">
+                        {% endfor %}
+                        <button type="submit" class="btn btn-warning btn-lg">
+                            <i class="fas fa-envelope"></i> Revote (Hold Election)
+                        </button>
+                        <small class="d-block text-muted mt-2" style="max-width: 300px;">
+                            Delete votes, put election on HOLD, and send private re-vote links to these users.
+                        </small>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

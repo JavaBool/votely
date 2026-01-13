@@ -158,3 +158,75 @@ def send_password_email(email, username, password):
     subject = 'Election Admin Credentials'
     body = f'Hello,\n\nYou have been added as an admin.\nUsername: {username}\nPassword: {password}\n\nPlease login and change your password immediately.'
     return send_email_async(email, subject, body, is_html=False)
+
+def send_revote_report_and_cleanup(election, triggering_admin_email=None):
+    """
+    Compiles a report of revote activity, sends it to Super Admin (and triggering admin), 
+    and then deletes all RevoteLinks for the election.
+    """
+    from models import RevoteLink, Admin, db
+    
+    # 1. Compile Report
+    links = RevoteLink.query.filter_by(election_id=election.id).all()
+    if not links:
+        return # Nothing to report or clean
+        
+    total = len(links)
+    used = sum(1 for l in links if l.is_used)
+    pending = total - used
+    
+    report_html = f"""
+    <h3>Revote Report for Election: {election.title}</h3>
+    <p>The election result has been released (or auto-completed). The revote phase is now closed.</p>
+    <ul>
+        <li><strong>Total Revote Links:</strong> {total}</li>
+        <li><strong>Votes Cast:</strong> {used}</li>
+        <li><strong>Pending (Discarded):</strong> {pending}</li>
+    </ul>
+    <table border="1" cellpadding="5" cellspacing="0">
+        <thead>
+            <tr>
+                <th>Voter Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Time</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
+    
+    for link in links:
+        status_color = "green" if link.is_used else "red"
+        status_text = "Voted" if link.is_used else "Expired/Unused"
+        report_html += f"""
+            <tr>
+                <td>{link.elector.name}</td>
+                <td>{link.elector.email or '-'}</td>
+                <td>{link.elector.phone or '-'}</td>
+                <td style="color:{status_color}">{status_text}</td>
+                <td>{link.created_at.strftime('%Y-%m-%d %H:%M:%S')}</td>
+            </tr>
+        """
+        
+    report_html += "</tbody></table>"
+    report_html += "<p><strong>System Action:</strong> All above revote links have been permanently deleted from the database.</p>"
+    
+    # 2. Get Recipients (Super Admins + Triggering Admin)
+    super_admins = Admin.query.filter_by(is_super_admin=True).all()
+    recipients = set([sa.email for sa in super_admins])
+    
+    if triggering_admin_email:
+        recipients.add(triggering_admin_email)
+        
+    # 3. Send Emails
+    subject = f"Revote Closure Report: {election.title}"
+    for email in recipients:
+        send_notification_email(email, subject, report_html)
+        
+    # 4. Clean up DB
+    try:
+        RevoteLink.query.filter_by(election_id=election.id).delete()
+        db.session.commit()
+    except Exception as e:
+        print(f"Error cleaning up revote links: {e}")

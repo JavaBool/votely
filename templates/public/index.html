@@ -20,7 +20,8 @@
                     onmouseover="this.style.color='var(--primary-color)'" onmouseout="this.style.color='inherit'">
                     {{ election.title }}
                 </a>
-                <span class="badge {{ 'completed' if election.status == 'completed' else 'active' }}"
+                <span
+                    class="badge {{ 'completed' if election.status == 'completed' else 'warning' if election.status == 'hold' else 'active' }}"
                     style="font-size: 0.75rem; text-transform: uppercase; flex-shrink: 0;">
                     {{ election.status }}
                 </span>

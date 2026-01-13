@@ -296,6 +296,27 @@ def ballot(election_id):
 
             
             db.session.add(vote)
+            
+            # Check for revote link usage
+            if 'revote_link_id' in session:
+                from models import RevoteLink
+                link = RevoteLink.query.get(session['revote_link_id'])
+                if link:
+                    link.is_used = True
+                    # Auto-Complete Election if this was the last pending revote
+                    pending_count = RevoteLink.query.filter_by(election_id=link.election_id, is_used=False).count()
+                    if pending_count == 0:
+                        election = Election.query.get(link.election_id)
+                        if election.status == 'hold':
+                            election.status = 'completed'
+                            election.show_results = False # Revert to 'Results Pending' for final Admin verification
+                            
+                            # Send report and cleanup (Super Admin only since no specific admin triggered this)
+                            from utils import send_revote_report_and_cleanup
+                            send_revote_report_and_cleanup(election)
+                
+                session.pop('revote_link_id', None)
+
             db.session.commit()
             
             session.pop('voter_elector_id', None)
@@ -340,6 +361,8 @@ def results(election_id):
     for i, (candidate, count) in enumerate(results):
         if count != last_count:
             current_rank = i + 1
+            last_count = count
+        final_results.append((candidate, count, current_rank))
     results = final_results
     
     total_votes = Vote.query.filter_by(election_id=election_id).count()
@@ -413,3 +436,30 @@ def request_access(election_id):
         return redirect(url_for('public.election_details', election_id=election_id))
         
     return render_template('public/request_access.html', election=election)
+@public_bp.route('/revote/<token>')
+def revote_access(token):
+    from models import RevoteLink, Elector
+    from flask import session
+    
+    link = RevoteLink.query.filter_by(token=token).first()
+    
+    if not link:
+        flash('Invalid voting link.', 'error')
+        return redirect(url_for('public.index'))
+        
+    if link.is_used:
+        flash('This voting link has already been used.', 'error')
+        return redirect(url_for('public.index'))
+        
+    election = link.election
+    if election.status != 'hold':
+        # If it's completed, link is void
+        flash('This election is no longer accepting votes.', 'error')
+        return redirect(url_for('public.index'))
+        
+    # Log user in
+    session['voter_elector_id'] = link.elector_id
+    session['voter_election_id'] = link.election_id
+    session['revote_link_id'] = link.id # Store to mark as used later
+    
+    return redirect(url_for('public.ballot', election_id=election.id))
