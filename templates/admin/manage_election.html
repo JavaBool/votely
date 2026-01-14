@@ -341,11 +341,16 @@
             {% set pending_electors = election.electors | selectattr('status', 'equalto', 'pending') | list %}
             {% if pending_electors %}
             <div class="card mb-3" style="border-left: 5px solid var(--warning-color);">
-                <h4>Pending Access Requests</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 class="mb-0">Pending Access Requests</h4>
+                    <input type="text" id="pendingRequestsSearch" class="form-control form-control-sm"
+                        style="width: 200px;" placeholder="Search Requests...">
+                </div>
                 <div style="max-height: 200px; overflow-y: auto;">
-                    <table>
+                    <table id="pendingRequestsTable">
                         <thead>
                             <tr>
+                                <th>S.No</th>
                                 {% if election.allow_phone_voting %}<th>Phone</th>{% endif %}
                                 <th>Email</th>
                                 <th>Name</th>
@@ -355,6 +360,7 @@
                         <tbody>
                             {% for elector in pending_electors %}
                             <tr>
+                                <td>{{ loop.index }}</td>
                                 {% if election.allow_phone_voting %}<td>{{ elector.phone or '-' }}</td>{% endif %}
                                 <td>{{ elector.email or '-' }}</td>
                                 <td>{{ elector.name }}</td>
@@ -411,8 +417,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for elector in election.electors %}
-                                {% if elector.status == 'approved' %}
+                                {% set approved_electors = election.electors | selectattr('status', 'equalto',
+                                'approved') | list %}
+                                {% for elector in approved_electors %}
                                 <tr>
                                     <td><input type="checkbox" name="elector_ids" value="{{ elector.id }}"
                                             class="elector-checkbox"></td>
@@ -450,7 +457,6 @@
                                         {% endif %}
                                     </td>
                                 </tr>
-                                {% endif %}
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -521,6 +527,7 @@
                     setupTableSearch('electorSearch', 'electorsTable'); // Fixed order
                     setupTableSearch('revoteSearch', 'revoteTable');
                     setupTableSearch('nominationsSearch', 'nominationsTable');
+                    setupTableSearch('pendingRequestsSearch', 'pendingRequestsTable');
 
                     // Nominations Checkbox Logic
                     const selectAllNom = document.getElementById('selectAllNominations');

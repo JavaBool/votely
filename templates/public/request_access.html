@@ -8,21 +8,21 @@
 
         <form method="POST">
             <div class="form-floating mb-3">
-                <label for="nameInput">Full Name</label>
                 <input type="text" name="name" class="form-control" id="nameInput" placeholder="John Doe" required>
+                <label for="nameInput">Full Name</label>
             </div>
 
             <div class="form-floating mb-3">
-                <label for="emailInput">Email Address</label>
                 <input type="email" name="email" class="form-control" id="emailInput" placeholder="name@example.com"
                     style="margin-bottom: 20px;">
+                <label for="emailInput">Email Address</label>
             </div>
 
             {% if election.allow_phone_voting %}
             <div class="form-floating mb-4">
-                <label for="phoneInput">Phone Number (Optional)</label>
                 <input type="tel" name="phone" class="form-control" id="phoneInput" placeholder="+919999999999"
                     style="margin-bottom: 20px;">
+                <label for="phoneInput">Phone Number (Optional)</label>
             </div>
             {% endif %}
 
