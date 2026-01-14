@@ -38,8 +38,10 @@
                     </span>
                 </td>
                 <td>
-                    {{ election.start_time.strftime('%Y-%m-%d %H:%M') }}<br>
-                    to {{ election.end_time.strftime('%Y-%m-%d %H:%M') }}
+                    <small class="text-muted d-block">Start: {{ election.start_time.strftime('%Y-%m-%d %H:%M') }}
+                        (IST)</small>
+                    <small class="text-muted d-block">End: {{ election.end_time.strftime('%Y-%m-%d %H:%M') }}
+                        (IST)</small>
                 </td>
                 <td>
                     {{ election.nomination_start.strftime('%Y-%m-%d') }} - {{

@@ -40,6 +40,14 @@
                     {% endif %}
                 </div>
 
+                <p class="card-text text-muted mb-1">
+                    <small><i class="bi bi-calendar-event me-2"></i><strong>Start:</strong> {{
+                        election.start_time.strftime('%d %b %Y, %I:%M %p') }} (IST)</small>
+                </p>
+                <p class="card-text text-muted">
+                    <small><i class="bi bi-clock me-2"></i><strong>End:</strong> {{
+                        election.end_time.strftime('%d %b %Y, %I:%M %p') }} (IST)</small>
+                </p>
                 {% if election.show_results and election.end_time <= now() %} <a
                     href="{{ url_for('public.results', election_id=election.id) }}" class="btn btn-success"
                     style="width: 100%; text-align: center;">View Results</a>

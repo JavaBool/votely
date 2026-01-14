@@ -12,10 +12,10 @@
             <h1 style="margin-top: 0;">{{ election.title }}</h1>
             <p style="color: var(--text-secondary);">{{ election.description }}</p>
             <div style="font-size: 0.875rem; color: var(--text-secondary);">
-                <p><strong>Voting:</strong> {{ election.start_time.strftime('%Y-%m-%d %H:%M') }} to {{
-                    election.end_time.strftime('%Y-%m-%d %H:%M') }}</p>
-                <p><strong>Nominations:</strong> {{ election.nomination_start.strftime('%Y-%m-%d %H:%M') }} to {{
-                    election.nomination_end.strftime('%Y-%m-%d %H:%M') }}</p>
+                <p><strong>Voting:</strong> {{ election.start_time.strftime('%Y-%m-%d %H:%M') }} (IST) to {{
+                    election.end_time.strftime('%Y-%m-%d %H:%M') }} (IST)</p>
+                <p><strong>Nominations:</strong> {{ election.nomination_start.strftime('%Y-%m-%d %H:%M') }} (IST) to {{
+                    election.nomination_end.strftime('%Y-%m-%d %H:%M') }} (IST)</p>
                 <p><strong>Status:</strong> <span style="text-transform: uppercase;">{{ election.status }}</span></p>
             </div>
         </div>
@@ -125,7 +125,7 @@
                                     <span class="badge warning">Pending</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ link.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ link.created_at.strftime('%Y-%m-%d %H:%M') }} (IST)</td>
                             </tr>
                             {% endfor %}
                         </tbody>

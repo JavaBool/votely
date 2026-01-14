@@ -23,14 +23,17 @@
                 style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
                 <div>
                     <strong>Voting Period:</strong><br>
-                    {{ election.start_time.strftime('%Y-%m-%d %H:%M') }} - {{ election.end_time.strftime('%Y-%m-%d
-                    %H:%M')
-                    }}
+                    <p class="mb-0"><strong>Start:</strong> {{ election.start_time.strftime('%d %b %Y, %I:%M %p') }}
+                        (IST)</p>
+                    <p class="mb-0"><strong>End:</strong> {{ election.end_time.strftime('%d %b %Y, %I:%M %p') }} (IST)
+                    </p>
                 </div>
                 <div>
                     <strong>Nomination Period:</strong><br>
-                    {{ election.nomination_start.strftime('%Y-%m-%d %H:%M') }} - {{
-                    election.nomination_end.strftime('%Y-%m-%d %H:%M') }}
+                    <p class="mb-0"><strong>Start:</strong> {{ election.nomination_start.strftime('%d %b %Y, %I:%M %p')
+                        }} (IST)</p>
+                    <p class="mb-0"><strong>End:</strong> {{ election.nomination_end.strftime('%d %b %Y, %I:%M %p') }}
+                        (IST)</p>
                 </div>
                 <div>
                     <strong>Age Requirement:</strong><br>
