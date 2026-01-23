@@ -124,14 +124,12 @@ def edit_election(election_id):
                  election.status = 'completed'
                  flash('Election marked as completed because end time is in the past.', 'info')
              elif election.status == 'hold':
-                 from models import RevoteLink
-                 RevoteLink.query.filter_by(election_id=election.id).delete()
                  if election.end_time > now:
                      election.status = 'active'
-                     flash('Election reactivated from HOLD. Pending revote links have been deleted.', 'warning')
+                     flash('Election reactivated.', 'warning')
                  else:
                      election.status = 'completed'
-                     flash('Election moved from HOLD to Completed. Pending revote links deleted.', 'warning')
+                     flash('Election moved to Completed.', 'warning')
 
 
              if election.show_results:
@@ -517,7 +515,9 @@ def delete_elector(elector_id):
     election_id = elector.election_id
     
 
-    Vote.query.filter_by(elector_id=elector.id).delete()
+    # Vote.query.filter_by(elector_id=elector.id).delete() # Cannot delete anonymous votes
+    # Just delete user, their vote remains as part of the count but anonymous
+    pass
         
     db.session.delete(elector)
     db.session.commit()
@@ -550,7 +550,7 @@ def delete_electors_bulk(election_id):
     valid_electors = Elector.query.filter(Elector.election_id == election_id, Elector.id.in_(elector_ids)).all()
     
     for elector in valid_electors:
-        Vote.query.filter_by(elector_id=elector.id).delete()
+        # Vote.query.filter_by(elector_id=elector.id).delete() # Anonymous votes persist
         db.session.delete(elector)
         deleted_count += 1
         
@@ -594,68 +594,16 @@ def get_secret_code(election_id):
 @admin_bp.route('/elector/<int:elector_id>/reset_vote', methods=['POST'])
 @login_required
 def reset_vote(elector_id):
-    from models import Vote
+    # Functionality removed for privacy
+    flash('Vote reset is no longer possible for anonymity reasons.', 'error')
     elector = Elector.query.get_or_404(elector_id)
-    if not current_user.can_manage_electors:
-        flash('Access denied.', 'error')
-        return redirect(url_for('admin.manage_election', election_id=elector.election_id))
-
-    if not elector.has_voted:
-        flash('Elector has not voted yet.', 'warning')
-        return redirect(url_for('admin.manage_election', election_id=elector.election_id))
-
-    if elector.election.status == 'completed':
-        flash('Cannot reset votes for a completed election.', 'error')
-        return redirect(url_for('admin.manage_election', election_id=elector.election_id))
-        
-    # Initiate OTP flow
-    otp = str(random.randint(100000, 999999))
-    session['reset_vote_elector_id'] = elector.id
-
-    store_otp_in_session('reset_vote_otp', otp)
-    
-    send_otp(current_user.email, otp, purpose="Vote Reset")
-    flash(f'OTP sent to {current_user.email} to confirm vote reset.', 'info')
-    return redirect(url_for('admin.verify_reset_vote_otp'))
+    return redirect(url_for('admin.manage_election', election_id=elector.election_id))
 
 @admin_bp.route('/election/verify_reset_vote', methods=['GET', 'POST'])
 @login_required
 def verify_reset_vote_otp():
-    if 'reset_vote_elector_id' not in session:
-        return redirect(url_for('admin.dashboard'))
-        
-    if request.method == 'POST':
-        otp = request.form.get('otp')
-        if otp == session.get('reset_vote_otp'):
-            from models import Vote
-            elector_id = session.get('reset_vote_elector_id')
-            elector = Elector.query.get(elector_id)
-            
-            if elector and elector.has_voted:
-
-                vote = Vote.query.filter_by(elector_id=elector.id, election_id=elector.election_id).first()
-                if vote:
-                    db.session.delete(vote)
-                    elector.has_voted = False
-                    db.session.commit()
-                    if elector.election.allow_phone_voting:
-                        display_identity = f"{elector.phone or 'N/A'}"
-                        if elector.email:
-                            display_identity += f" / {elector.email}"
-                        flash(f'Vote for {display_identity} has been reset.', 'success')
-                    else:
-                        flash(f'Vote for {elector.email or elector.phone} has been reset.', 'success')
-                else:
-                    flash('Could not find vote record to delete.', 'error')
-            
-            session.pop('reset_vote_elector_id', None)
-            session.pop('reset_vote_otp', None)
-            
-            return redirect(url_for('admin.manage_election', election_id=elector.election_id if elector else 1))
-        else:
-            flash('Invalid OTP', 'error')
-            
-    return render_template('admin/verify_otp_generic.html', title="Confirm Vote Reset")
+    flash('Feature disabled.', 'error')
+    return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/election/<int:election_id>/release', methods=['POST'])
 @login_required
@@ -675,19 +623,8 @@ def initiate_release_results(election_id):
         return redirect(url_for('admin.manage_election', election_id=election_id))
         
     if election.status == 'hold':
-        # Check if all revote links are used
-        from models import RevoteLink
-        pending_links = RevoteLink.query.filter_by(election_id=election.id, is_used=False).all()
-        
-        if not pending_links:
-             # All used, can proceed to release (acting as if completed now)
-             pass 
-        else:
-             # Pending votes exist
-             electors = []
-             for link in pending_links:
-                 electors.append({'name': link.elector.name, 'email': link.elector.email, 'phone': link.elector.phone})
-             return render_template('admin/hold_status.html', election=election, pending_voters=electors)
+        # Hold Logic is simplified, simply proceed release
+        pass
 
     otp = str(random.randint(100000, 999999))
     session['release_election_id'] = election.id
@@ -712,39 +649,7 @@ def verify_release_results_otp():
             election = Election.query.get(election_id)
             
             if election:
-                # DUPLICATE CHECK
-                from sqlalchemy import func
-                from models import Vote, Elector
-                
-                duplicates = db.session.query(Vote.elector_id, func.count(Vote.id))\
-                    .filter(Vote.election_id == election_id)\
-                    .group_by(Vote.elector_id)\
-                    .having(func.count(Vote.id) > 1)\
-                    .all()
-
-                if duplicates:
-                    # Found duplicates!
-                    duplicate_voters = []
-                    for dup in duplicates:
-                        elector_id = dup[0]
-                        count = dup[1]
-                        elector = Elector.query.get(elector_id)
-                        duplicate_voters.append({
-                            'id': elector.id,
-                            'name': elector.name,
-                            'email': elector.email,
-                            'phone': elector.phone,
-                            'vote_count': count
-                        })
-                    
-                    # Store session verify so we don't need OTP again for resolution
-                    session['release_verified_election_id'] = election_id
-                    session.pop('release_election_id', None) # Switch to verified session
-                    session.pop('release_otp', None)
-
-                    return render_template('admin/duplicate_resolution.html', election=election, voters=duplicate_voters)
-
-                # No duplicates, proceed to release
+                # DUPLICATE CHECK IGNORED - ANONYMOUS VOTING
                 return perform_release_results(election)
             else:
                  flash('Election not found.', 'error')
@@ -760,8 +665,8 @@ def perform_release_results(election):
         
         # Helper will check if links exist, report if so, and delete them.
         # Safe to call for any release action to ensure no dangling links.
-        from utils import send_revote_report_and_cleanup
-        send_revote_report_and_cleanup(election, current_user.email)
+        # from utils import send_revote_report_and_cleanup
+        # send_revote_report_and_cleanup(election, current_user.email)
         
         # If it was on hold, now it is completed
         if election.status == 'hold':
@@ -897,83 +802,14 @@ def resolve_duplicates_remove():
 @admin_bp.route('/election/resolve/revote', methods=['POST'])
 @login_required
 def resolve_duplicates_revote():
-    election_id = session.get('release_verified_election_id')
-    if not election_id:
-        return redirect(url_for('admin.dashboard'))
-        
-    election = Election.query.get_or_404(election_id)
-    voter_ids = request.form.getlist('voter_ids')
-    
-    from models import Vote, Elector, RevoteLink
-    from utils import send_notification_email
-    import secrets
-    
-    election.status = 'hold'
-    db.session.commit()
-    
-    count = 0
-    for vid in voter_ids:
-        elector = Elector.query.get(vid)
-        if not elector: continue
-        
-        # 1. Delete existing votes
-        Vote.query.filter_by(election_id=election_id, elector_id=vid).delete()
-        elector.has_voted = False
-        
-        # 2. Generate Private Link
-        token = secrets.token_urlsafe(32)
-        link = RevoteLink(election_id=election_id, elector_id=vid, token=token)
-        db.session.add(link)
-        
-        # 3. Send Email
-        if elector.email:
-            revote_url = url_for('public.revote_access', token=token, _external=True)
-            subject = f"ACTION REQUIRED: Re-vote for {election.title}"
-            body = render_template('email/revote_link.html', variable_name='variable_value', elector=elector, election=election, link=revote_url)
-            # Render template returns string, we can pass it directly.
-            # I need to create the template properly.
-            
-            send_notification_email(elector.email, subject, body)
-            count += 1
-            
-    db.session.commit()
-    flash(f'Election put on HOLD. {count} revote links sent.', 'warning')
-    
-    session.pop('release_verified_election_id', None)
-    return redirect(url_for('admin.manage_election', election_id=election_id))
+    flash('Feature deprecated.', 'error')
+    return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/election/<int:election_id>/export_revote_links', methods=['POST'])
 @login_required
 def export_revote_links(election_id):
-    if not current_user.can_manage_elections:
-        flash('Access denied.', 'error')
-        return redirect(url_for('admin.manage_election', election_id=election_id))
-
-    election = Election.query.get_or_404(election_id)
-    
-    link_ids = request.form.getlist('link_ids')
-    if not link_ids:
-        flash('No revote links selected for export.', 'warning')
-        return redirect(url_for('admin.manage_election', election_id=election_id))
-
-    from models import RevoteLink
-    
-    si = io.StringIO()
-    cw = csv.writer(si)
-    cw.writerow(['Name', 'Email', 'Phone', 'Link Status', 'Private Link', 'Sent At'])
-    
-    # Filter links
-    selected_links = [l for l in election.revote_links if str(l.id) in link_ids]
-    
-    for link in selected_links:
-        status = "Used" if link.is_used else "Pending"
-        url = url_for('public.revote_access', token=link.token, _external=True)
-        cw.writerow([link.elector.name, link.elector.email or '', link.elector.phone or '', status, url, link.created_at])
-        
-    output = make_response(si.getvalue())
-    output.headers["Content-Disposition"] = f"attachment; filename=revote_links_{election_id}.csv"
-    output.headers["Content-type"] = "text/csv"
-    return output
+    flash('Feature deprecated.', 'error')
+    return redirect(url_for('admin.manage_election', election_id=election_id))
 
 @admin_bp.route('/election/<int:election_id>/force_release', methods=['POST'])
 @login_required
@@ -991,28 +827,8 @@ def force_release_hold(election_id):
 @admin_bp.route('/election/<int:election_id>/resend_links', methods=['POST'])
 @login_required
 def resend_hold_links(election_id):
-    if not current_user.can_manage_elections:
-         return redirect(url_for('admin.dashboard'))
-         
-    election = Election.query.get_or_404(election_id)
-    if election.status != 'hold':
-        return redirect(url_for('admin.manage_election', election_id=election_id))
-        
-    from models import RevoteLink
-    from utils import send_notification_email
-    
-    pending_links = RevoteLink.query.filter_by(election_id=election_id, is_used=False).all()
-    count = 0
-    for link in pending_links:
-        if link.elector.email:
-             revote_url = url_for('public.revote_access', token=link.token, _external=True)
-             subject = f"REMINDER: Re-vote for {election.title}"
-             body = render_template('email/revote_link.html', elector=link.elector, election=election, link=revote_url)
-             send_notification_email(link.elector.email, subject, body)
-             count += 1
-             
-    flash(f'Resent {count} emails.', 'success')
-    return redirect(url_for('admin.initiate_release_results', election_id=election_id))
+    flash('Feature deprecated.', 'error')
+    return redirect(url_for('admin.manage_election', election_id=election_id))
 
 @admin_bp.route('/admins', methods=['GET', 'POST'])
 @login_required

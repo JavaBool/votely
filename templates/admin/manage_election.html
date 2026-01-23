@@ -84,82 +84,14 @@
 
 <div style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
     {% if election.status == 'hold' %}
-    <div style="grid-column: 1 / -1;" class="card border-warning">
-        <div class="card-header bg-warning">
-            <h5 class="mb-0 text-dark"><i class="fas fa-exclamation-circle"></i> Election on HOLD - Revote Status</h5>
-        </div>
-        <div class="card-body">
-            <form action="{{ url_for('admin.export_revote_links', election_id=election.id) }}" method="POST">
-                <div class="mb-2" style="display: flex; justify-content: space-between; align-items: center;">
-                    <button type="submit" id="exportLinksBtn" class="btn btn-success btn-sm" disabled>Export
-                        Selected CSV</button>
-                    <input type="text" id="revoteSearch" class="form-control form-control-sm" style="width: 200px;"
-                        placeholder="Search Revote Links...">
-                </div>
-                <div class="table-responsive">
-                    <table id="revoteTable" class="table table-sm table-bordered mb-0">
-                        <thead>
-                            <tr>
-                                <th style="width: 40px;"><input type="checkbox" id="selectAllLinks"></th>
-                                <th style="width: 50px;">S.No</th>
-                                <th>Voter Name</th>
-                                <th>Email</th>
-                                <th>Phone</th>
-                                <th>Status</th>
-                                <th>Link Sent At</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for link in election.revote_links %}
-                            <tr>
-                                <td><input type="checkbox" name="link_ids" value="{{ link.id }}" class="link-checkbox">
-                                </td>
-                                <td>{{ loop.index }}</td>
-                                <td>{{ link.elector.name }}</td>
-                                <td>{{ link.elector.email or '-' }}</td>
-                                <td>{{ link.elector.phone or '-' }}</td>
-                                <td>
-                                    {% if link.is_used %}
-                                    <span class="badge success">Revoted</span>
-                                    {% else %}
-                                    <span class="badge warning">Pending</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ link.created_at.strftime('%Y-%m-%d %H:%M') }} (IST)</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </form>
-            <script>
-                document.addEventListener('DOMContentLoaded', function () {
-                    const selectAllLinks = document.getElementById('selectAllLinks');
-                    const linkCheckboxes = document.querySelectorAll('.link-checkbox');
-                    const exportLinksBtn = document.getElementById('exportLinksBtn');
-
-                    function updateLinkButtonState() {
-                        if (!exportLinksBtn) return;
-                        const anyChecked = Array.from(linkCheckboxes).some(cb => cb.checked);
-                        exportLinksBtn.disabled = !anyChecked;
-                    }
-
-                    if (selectAllLinks) {
-                        selectAllLinks.addEventListener('change', function () {
-                            linkCheckboxes.forEach(cb => cb.checked = selectAllLinks.checked);
-                            updateLinkButtonState();
-                        });
-                    }
-
-                    linkCheckboxes.forEach(cb => {
-                        cb.addEventListener('change', function () {
-                            updateLinkButtonState();
-                            if (!cb.checked && selectAllLinks) selectAllLinks.checked = false;
-                        });
-                    });
-                });
-            </script>
-        </div>
+    <!-- Revote section removed for privacy enhancement -->
+    <div style="grid-column: 1 / -1;" class="alert alert-warning">
+        <strong>Notice:</strong> This election is on HOLD. Results validation pending.
+        <form action="{{ url_for('admin.force_release_hold', election_id=election.id) }}" method="POST"
+            style="display:inline; margin-left:1rem;">
+            <button type="submit" class="btn btn-success btn-sm"
+                onclick="return confirm('Proceed releasing results?');">Release Results Now</button>
+        </form>
     </div>
     {% endif %}
 
@@ -439,14 +371,7 @@
                                             style="color: var(--primary-color); font-size: 0.875rem;">Edit</a>
 
                                         {% if election.status != 'completed' %}
-                                        {% if elector.has_voted %}
-
-                                        <button type="submit"
-                                            formaction="{{ url_for('admin.reset_vote', elector_id=elector.id) }}"
-                                            onclick="return confirm('Initiate Re-vote? An OTP will be sent to your email.');"
-                                            class="btn btn-warning"
-                                            style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Re-vote</button>
-                                        {% endif %}
+                                        <!-- Re-vote button removed for privacy -->
 
 
 

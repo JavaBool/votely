@@ -92,16 +92,5 @@ class Vote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     election_id = db.Column(db.Integer, db.ForeignKey('election.id'), nullable=False)
     candidate_id = db.Column(db.Integer, db.ForeignKey('candidate.id'), nullable=True)
-    elector_id = db.Column(db.Integer, db.ForeignKey('elector.id'), nullable=True)
+    # elector_id removed for privacy
     timestamp = db.Column(db.DateTime, default=get_ist_now)
-
-class RevoteLink(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    election_id = db.Column(db.Integer, db.ForeignKey('election.id'), nullable=False)
-    elector_id = db.Column(db.Integer, db.ForeignKey('elector.id'), nullable=False)
-    token = db.Column(db.String(100), unique=True, nullable=False)
-    is_used = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=get_ist_now)
-
-    election = db.relationship('Election', backref=db.backref('revote_links', lazy=True, cascade="all, delete-orphan"))
-    elector = db.relationship('Elector', backref=db.backref('revote_links', lazy=True))

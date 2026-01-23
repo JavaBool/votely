@@ -1,17 +1,40 @@
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
 .env
-firebase_credentials.json
-credentials.json
-token.json
-email_config.json
 instance/
 .pytest_cache/
 .DS_Store
 
-# Utility Scripts
+# Secrets and Config
+firebase_credentials.json
+credentials.json
+token.json
+email_config.json
+
+# Logs and Output
+*.log
+dump_output.txt
+full_output.txt
+error.txt
+
+# Verification and Utility Scripts
+verify_*.py
+test_*.py
+read_log.py
+migrate_voting_privacy.py
 add_duplicate.py
 add_duplicates.py
 db_update.py
 check_revote_links.py
 cleanup_rejected.py
+dump_db.py
+setup_gmail.py
+firebase_setup.py
+
+# VS Code
+.vscode/
