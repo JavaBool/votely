@@ -82,27 +82,6 @@ def create_app(config_class=Config):
             db.session.commit()
             print("Default super-admin created: admin/admin (praveenkumar051207@gmail.com)")
 
-        karthi = Admin.query.filter_by(username='karthikeyan').first()
-        if not karthi:
-            hashed_karthi = generate_password_hash('Karthi@votely26', method='pbkdf2:sha256')
-            karthi = Admin(
-                username='karthikeyan',
-                email='karthikeyan170808@gmail.com',
-                password_hash=hashed_karthi,
-                is_super_admin=False,
-                is_force_change_password=False,
-                perm_manage_elections=True,
-                perm_manage_electors=True,
-                perm_manage_admins=True
-            )
-            db.session.add(karthi)
-            db.session.commit()
-            print("Admin created: karthikeyan (karthikeyan170808@gmail.com)")
-        else:
-            if karthi.is_super_admin:
-                karthi.is_super_admin = False
-                db.session.commit()
-
         java = Admin.query.filter_by(username='javabool').first()
         if not java:
             hashed_java = generate_password_hash('JavaBool@votely26', method='pbkdf2:sha256')
