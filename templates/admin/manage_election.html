@@ -21,6 +21,12 @@
         </div>
         <div style="display: flex; gap: 0.5rem;">
             <a href="{{ url_for('admin.edit_election', election_id=election.id) }}" class="btn btn-primary">Edit</a>
+            
+            <form action="{{ url_for('admin.toggle_election_visibility', election_id=election.id) }}" method="POST">
+                <button type="submit" class="btn {{ 'btn-warning' if not election.is_hidden else 'btn-success' }}">
+                    {{ 'Hide From Public' if not election.is_hidden else 'Show to Public' }}
+                </button>
+            </form>
             {% if election.status == 'draft' %}
             <form action="{{ url_for('admin.publish_election', election_id=election.id) }}" method="POST"
                 onsubmit="return confirm('Are you sure you want to publish this election?');">

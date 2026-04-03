@@ -10,7 +10,7 @@ public_bp = Blueprint('public', __name__)
 @public_bp.route('/')
 def index():
 
-    elections = Election.query.filter(Election.status != 'draft').order_by(Election.start_time.desc()).all()
+    elections = Election.query.filter(Election.status != 'draft', Election.is_hidden == False).order_by(Election.start_time.desc()).all()
     return render_template('public/index.html', elections=elections)
 
 @public_bp.route('/election/<int:election_id>')

@@ -56,6 +56,7 @@ class Election(db.Model):
     show_results = db.Column(db.Boolean, default=False)
     allow_nota = db.Column(db.Boolean, default=False)
     allow_phone_voting = db.Column(db.Boolean, default=True)
+    is_hidden = db.Column(db.Boolean, default=False)
     
     candidates = db.relationship('Candidate', backref='election', lazy=True, cascade="all, delete-orphan")
     electors = db.relationship('Elector', backref='election', lazy=True, cascade="all, delete-orphan")

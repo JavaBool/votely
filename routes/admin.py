@@ -416,6 +416,19 @@ def start_voting_now(election_id):
         
     return redirect(url_for('admin.manage_election', election_id=election_id))
 
+@admin_bp.route('/election/<int:election_id>/toggle_visibility', methods=['POST'])
+@login_required
+def toggle_election_visibility(election_id):
+    if not current_user.can_manage_elections:
+        flash('Access denied.', 'error')
+        return redirect(url_for('admin.dashboard'))
+    election = Election.query.get_or_404(election_id)
+    election.is_hidden = not election.is_hidden
+    db.session.commit()
+    status = "hidden from public" if election.is_hidden else "now visible to public"
+    flash(f'Election is {status}.', 'success')
+    return redirect(url_for('admin.manage_election', election_id=election_id))
+
 @admin_bp.route('/election/<int:election_id>/delete', methods=['POST'])
 @login_required
 def delete_election(election_id):

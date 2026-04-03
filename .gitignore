@@ -17,3 +17,4 @@ db_update.py
 check_revote_links.py
 cleanup_rejected.py
 dump_db.py
+db_update_hidden.py
