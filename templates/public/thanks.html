@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 900px; padding-top: 3rem; padding-bottom: 5rem;">
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
+        <!-- Header Section -->
+        <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1rem;">
+            <div style="font-size: 3.5rem; color: #10b981; line-height: 1;">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div>
+                <h1 style="font-size: 2.25rem; font-weight: 800; margin: 0; color: var(--text-primary);">
+                    Thank You for Voting!
+                </h1>
+                <p style="color: var(--text-secondary); margin: 0.25rem 0 0 0; font-size: 1.1rem;">
+                    Your ballot has been securely cast for <strong>{{ election.title }}</strong>.
+                </p>
+            </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); opacity: 0.1; margin: 0;">
+
+        <!-- Message Body -->
+        <div style="font-size: 1.15rem; line-height: 1.7; color: var(--text-secondary);">
+            {% if elector.custom_success_msg %}
+                <div class="custom-message-box">
+                    {{ elector.custom_success_msg | safe }}
+                </div>
+            {% endif %}
+
+            {% if election.success_msg %}
+                <div class="election-message-box">
+                    {{ election.success_msg | safe }}
+                </div>
+            {% endif %}
+
+            {% if not elector.custom_success_msg and not election.success_msg %}
+                <p style="padding: 1.5rem; background: rgba(var(--primary-rgb), 0.05); border-radius: 8px; border-left: 4px solid var(--primary-color);">
+                    Your participation is highly valued. Every vote plays a vital role in ensuring a fair and democratic process.
+                </p>
+            {% endif %}
+        </div>
+
+        <!-- Action Links -->
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+            <a href="{{ url_for('public.index') }}" class="btn btn-primary" style="padding: 0.75rem 2rem; font-weight: 600;">
+                <i class="fas fa-home"></i> Back to Home
+            </a>
+            
+            {% if election.show_results %}
+            <a href="{{ url_for('public.results', election_id=election.id) }}" class="btn btn-outline-secondary" style="padding: 0.75rem 2rem;">
+                <i class="fas fa-chart-bar"></i> View Results
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.custom-message-box, .election-message-box {
+    padding: 2rem;
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    margin: 1.5rem 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.custom-message-box h1, .custom-message-box h2, .election-message-box h1, .election-message-box h2 {
+    color: var(--primary-color);
+    margin-top: 0;
+}
+</style>
+{% endblock %}

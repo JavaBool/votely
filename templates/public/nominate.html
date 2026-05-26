@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin-top: 2rem;">
+    <div class="card">
+        <h1 style="text-align: center; margin-top: 0;">Nomination for {{ election.title }}</h1>
+        <p style="text-align: center; color: var(--text-secondary); margin-bottom: 2rem;">{{ election.description }}</p>
+
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="name">Full Name <span style="color: var(--danger-color);">*</span></label>
+                <input type="text" id="name" name="name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email <span style="color: var(--danger-color);">*</span></label>
+                <input type="email" id="email" name="email" required
+                    placeholder="For notifications regarding your nomination status">
+            </div>
+
+            {% if election.config_age != 0 %}
+            <div class="form-group">
+                <label for="age">Age {% if election.config_age == 2 %}<span
+                        style="color: var(--danger-color);">*</span>{% else
+                    %}(Optional){% endif %}</label>
+                <input type="number" id="age" name="age" {% if election.config_age==2 %}required{% endif %} {% if
+                    election.min_age> 0 %}min="{{ election.min_age }}"{% endif %}>
+                {% if election.min_age > 0 %}
+                <small style="color: var(--text-secondary); display: block;">Minimum required age is {{ election.min_age
+                    }}
+                    years.</small>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if election.config_photo != 0 %}
+            <div class="form-group">
+                <label for="photo">Photo {% if election.config_photo == 2 %}<span
+                        style="color: var(--danger-color);">*</span>{% else
+                    %}(Optional){% endif %}</label>
+                <input type="file" id="photo" name="photo" accept="image/*" {% if election.config_photo==2 %}required{%
+                    endif %}>
+                <small style="display: block; color: var(--text-secondary); margin-top: 0.25rem;">Max size 16MB.</small>
+            </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Submit
+                Nomination</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

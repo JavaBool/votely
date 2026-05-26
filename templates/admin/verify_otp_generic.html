@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container" style="max-width: 500px; margin: 4rem auto;">
+    <div class="card">
+        <h2 style="text-align: center; margin-bottom: 2rem;">{{ title }}</h2>
+        <p style="text-align: center; margin-bottom: 2rem; color: var(--text-secondary);">
+            Please enter the OTP sent to your email address.
+        </p>
+
+        <form method="POST">
+            <div class="form-group">
+                <label>Enter OTP</label>
+                <input type="text" name="otp" class="form-control" placeholder="123456" required
+                    style="text-align: center; letter-spacing: 0.5rem; font-size: 1.5rem;">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Verify OTP</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

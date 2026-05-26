@@ -1,0 +1,24 @@
+__pycache__/
+*.pyc
+.env
+firebase_credentials.json
+credentials.json
+token.json
+email_config.json
+instance/
+.pytest_cache/
+.DS_Store
+dump_output.txt
+
+# Utility Scripts
+firebase_config.json
+add_duplicate.py
+add_duplicates.py
+db_update.py
+check_revote_links.py
+cleanup_rejected.py
+dump_db.py
+db_update_hidden.py
+db_migrate_production.py
+db_migrate_thanks.py
+default-users.json

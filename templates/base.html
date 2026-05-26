@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Votely{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        crossorigin="anonymous">
+    {% block head %}{% endblock %}
+</head>
+
+<body style="display: flex; flex-direction: column; min-height: 100vh;">
+    <nav>
+        <div class="container nav-content">
+            <a href="/" class="nav-brand">Votely</a>
+            <div class="nav-links">
+                {% if current_user.is_authenticated %}
+                <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('admin.logout') }}">Logout</a>
+                {% else %}
+                <a href="{{ url_for('admin.login') }}">Admin Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="flex: 1; width: 100%;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="site-footer">
+        <h5>Votely</h5>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+        crossorigin="anonymous"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const html = document.documentElement;
+            const currentTheme = localStorage.getItem('theme') || 'dark';
+            html.setAttribute('data-bs-theme', currentTheme);
+
+            // Create toggle button
+            const navLinks = document.querySelector('.nav-links');
+            if (navLinks) {
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-secondary';
+                btn.style.marginLeft = '1rem';
+                btn.style.padding = '0.25rem 0.5rem';
+                btn.innerHTML = currentTheme === 'dark' ? '☀️' : '🌙';
+                btn.onclick = () => {
+                    const newTheme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+                    html.setAttribute('data-bs-theme', newTheme);
+                    localStorage.setItem('theme', newTheme);
+                    btn.innerHTML = newTheme === 'dark' ? '☀️' : '🌙';
+                };
+                navLinks.appendChild(btn);
+            }
+        });
+    </script>
+</body>
+
+</html>

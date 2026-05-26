@@ -1,0 +1,535 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <a href="{{ url_for('admin.dashboard') }}" style="color: var(--primary-color); text-decoration: none;">&larr; Back
+        to Dashboard</a>
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: start;">
+        <div>
+            <h1 style="margin-top: 0;">{{ election.title }}</h1>
+            <p style="color: var(--text-secondary);">{{ election.description }}</p>
+            <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                <p><strong>Voting:</strong> {{ election.start_time.strftime('%Y-%m-%d %H:%M') }} (IST) to {{
+                    election.end_time.strftime('%Y-%m-%d %H:%M') }} (IST)</p>
+                <p><strong>Nominations:</strong> {{ election.nomination_start.strftime('%Y-%m-%d %H:%M') }} (IST) to {{
+                    election.nomination_end.strftime('%Y-%m-%d %H:%M') }} (IST)</p>
+                <p><strong>Status:</strong> <span style="text-transform: uppercase;">{{ election.status }}</span></p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="{{ url_for('admin.edit_election', election_id=election.id) }}" class="btn btn-primary">Edit</a>
+
+            <form action="{{ url_for('admin.toggle_election_visibility', election_id=election.id) }}" method="POST">
+                <button type="submit" class="btn {{ 'btn-warning' if not election.is_hidden else 'btn-success' }}">
+                    {{ 'Hide From Public' if not election.is_hidden else 'Show to Public' }}
+                </button>
+            </form>
+            {% if election.status == 'draft' %}
+            <form action="{{ url_for('admin.publish_election', election_id=election.id) }}" method="POST"
+                onsubmit="return confirm('Are you sure you want to publish this election?');">
+                <button type="submit" class="btn btn-success">Publish Election</button>
+            </form>
+            {% elif election.status == 'active' %}
+            {% elif election.status == 'completed' %}
+            {% if not election.show_results %}
+            <form action="{{ url_for('admin.initiate_release_results', election_id=election.id) }}" method="POST"
+                onsubmit="return confirm('Release results to public? This will trigger an OTP verification.');">
+                <button type="submit" class="btn btn-success">Release Results</button>
+            </form>
+            {% else %}
+            <span class="badge success">Results Public</span>
+            {% endif %}
+            {% endif %}
+
+
+            {% if election.status != 'draft' %}
+            {% if election.nomination_start > now() %}
+            <button type="button" class="btn btn-info"
+                onclick="openDurationModal('Start Nominations', '{{ url_for('admin.start_nominations_now', election_id=election.id) }}', 10)">Start
+                Nominations Now</button>
+            {% endif %}
+
+            {% if election.nomination_start <= now() and election.nomination_end> now() %}
+                <form action="{{ url_for('admin.end_nominations_now', election_id=election.id) }}" method="POST"
+                    onsubmit="return confirm('End Nominations NOW? This will close nominations immediately.');">
+                    <button type="submit" class="btn btn-warning">End Nominations Now</button>
+                </form>
+                {% endif %}
+
+                {% if election.nomination_end <= now() and election.start_time> now() %}
+                    <button type="button" class="btn btn-success"
+                        onclick="openDurationModal('Start Voting', '{{ url_for('admin.start_voting_now', election_id=election.id) }}', 60)">Start
+                        Voting Now</button>
+                    {% endif %}
+                    {% if election.start_time <= now() and election.end_time> now() %}
+                        <form action="{{ url_for('admin.end_election', election_id=election.id) }}" method="POST"
+                            onsubmit="return confirm('End Election NOW? This will close voting immediately.');">
+                            <button type="submit" class="btn btn-warning">End Election Now</button>
+                        </form>
+                        {% endif %}
+                        {% endif %}
+
+                        <form action="{{ url_for('admin.delete_election', election_id=election.id) }}" method="POST"
+                            onsubmit="return confirm('Delete this election? This cannot be undone.');">
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+        </div>
+    </div>
+</div>
+
+<!-- Success Message Preview Section -->
+<div style="margin-top: 1.5rem; padding: 1.5rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--input-bg);">
+    <h3 style="margin-top: 0; display: flex; align-items: center; gap: 0.75rem; color: var(--text-primary); font-size: 1.25rem;">
+        <i class="fas fa-comment-check" style="color: #10b981;"></i> Post-Voting Success Message
+    </h3>
+    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+        This message is displayed to voters immediately after they cast their ballot.
+    </p>
+    
+    <div style="background: rgba(16, 185, 129, 0.03); padding: 1rem; border-radius: 6px; margin: 1rem 0; border-left: 3px solid #10b981;">
+        {% if election.success_msg %}
+            <div style="font-size: 0.95rem; line-height: 1.6;">
+                {{ election.success_msg | safe }}
+            </div>
+        {% else %}
+            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
+                <i class="fas fa-info-circle"></i>
+                <em>Using the default system thank-you message.</em>
+            </div>
+        {% endif %}
+    </div>
+    
+    <a href="{{ url_for('admin.edit_election', election_id=election.id) }}#success_msg_config" 
+       style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--primary-color); text-decoration: none; font-weight: 600; font-size: 0.85rem;">
+        <i class="fas fa-cog"></i> Configure Message in Election Settings
+    </a>
+</div>
+
+<div style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+    <div style="background-color: var(--input-bg); padding: 1rem; border-radius: 5px; text-align: center;">
+        <div style="font-size: 0.875rem; color: var(--text-secondary);">Total Electors</div>
+        <div style="font-size: 1.5rem; font-weight: bold;">{{ total_electors }}</div>
+    </div>
+    <div style="background-color: var(--input-bg); padding: 1rem; border-radius: 5px; text-align: center;">
+        <div style="font-size: 0.875rem; color: var(--text-secondary);">Votes Cast</div>
+        <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color);">{{ votes_casted }}</div>
+    </div>
+    <div style="background-color: var(--input-bg); padding: 1rem; border-radius: 5px; text-align: center;">
+        <div style="font-size: 0.875rem; color: var(--text-secondary);">Participation</div>
+        <div style="font-size: 1.5rem; font-weight: bold;">
+            {% if total_electors > 0 %}
+            {{ (votes_casted / total_electors * 100) | round(1) }}%
+            {% else %}
+            0%
+            {% endif %}
+        </div>
+    </div>
+    <div style="background-color: var(--input-bg); padding: 1rem; border-radius: 5px; text-align: center;">
+        <div style="font-size: 0.875rem; color: var(--text-secondary);">Remaining</div>
+        <div style="font-size: 1.5rem; font-weight: bold;">{{ total_electors - votes_casted }}</div>
+    </div>
+</div>
+
+<div style="margin-top: 3rem; display: grid; grid-template-columns: 1fr; gap: 2rem;">
+
+    <div>
+        <form action="{{ url_for('admin.export_nominations', election_id=election.id) }}" method="POST">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <h2 class="mb-0">Nominations</h2>
+                    <button type="submit" id="exportNominationsBtn" class="btn btn-success btn-sm" disabled>Export
+                        Selected CSV</button>
+                </div>
+                <input type="text" id="nominationsSearch" class="form-control form-control-sm" style="width: 200px;"
+                    placeholder="Search Nominations...">
+            </div>
+            <div class="card">
+                {% if election.candidates %}
+                <table id="nominationsTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAllNominations"></th>
+                            <th style="width: 50px;">S.No</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for candidate in election.candidates | rejectattr('status', 'equalto', 'nota') %}
+                        <tr>
+                            <td><input type="checkbox" name="candidate_ids" value="{{ candidate.id }}"
+                                    class="nomination-checkbox"></td>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ candidate.name }}
+                                {% if candidate.age %}<br><small>Age: {{ candidate.age }}</small>{% endif %}
+                                {% if candidate.photo_path %}<br><small><a
+                                        href="{{ url_for('static', filename=candidate.photo_path) }}"
+                                        target="_blank">View
+                                        Photo</a></small>{% endif %}
+                            </td>
+                            <td>{{ candidate.email or '-' }}</td>
+                            <td>
+                                <span class="badge {{ candidate.status }}">{{ candidate.status|upper }}</span>
+                            </td>
+                            <td>
+                                {% if candidate.status == 'pending' or candidate.status == 'rejected' %}
+                                <a href="{{ url_for('admin.approve_candidate', candidate_id=candidate.id) }}"
+                                    style="color: var(--success-color); margin-right: 0.5rem;">Approve</a>
+                                {% endif %}
+                                {% if candidate.status == 'pending' or candidate.status == 'approved' %}
+                                <a href="{{ url_for('admin.reject_candidate', candidate_id=candidate.id) }}"
+                                    class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"
+                                    onclick="return confirm('Are you sure you want to reject this candidate?');">Reject</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>No nominations yet.</p>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+
+    <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2>Electors</h2>
+        </div>
+        {% if current_user.is_super_admin %}
+        <div class="card mb-4" style="border: 1px solid var(--warning-color);">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="my-0">Super Admin Zone: Secret Voting Codes</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Code-Based Vote URL:</strong> <a
+                        href="{{ url_for('public.secret_vote_login', election_id=election.id, _external=True) }}"
+                        target="_blank">{{ url_for('public.secret_vote_login', election_id=election.id, _external=True)
+                        }}</a></p>
+                <hr>
+                <h6>Retrieve Elector Code</h6>
+                <form action="{{ url_for('admin.get_secret_code', election_id=election.id) }}" method="POST"
+                    style="display: flex; gap: 0.5rem; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="form-group mb-0" style="flex: 1;">
+                        <label class="small">Name (Exact)</label>
+                        <input type="text" name="name" class="form-control" required placeholder="Full Name">
+                    </div>
+                    <div class="form-group mb-0" style="flex: 1;">
+                        <label class="small">Phone OR Email (Exact)</label>
+                        <input type="text" name="identifier" class="form-control" required placeholder="Phone / Email">
+                    </div>
+                    <button type="submit" name="action" value="get" class="btn btn-dark">Get Code</button>
+                    <button type="submit" name="action" value="reset" class="btn btn-outline-danger"
+                        onclick="return confirm('Are you sure you want to regenerate the secret code for this user? The old code will stop working.')">Reset
+                        Code</button>
+                </form>
+
+                <hr style="margin: 1.5rem 0;">
+
+                <h6>Bulk Export</h6>
+                <form action="{{ url_for('admin.initiate_export_secret_codes', election_id=election.id) }}"
+                    method="POST">
+                    <p class="small text-muted mb-2">Export all electors with their secret codes to CSV. requires OTP.
+                    </p>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="submit" class="btn btn-danger btn-sm"
+                            onclick="return confirm('Review Security Warning: You are about to export sensitive credentials. Proceed?');">
+                            Export All Secret Codes (CSV)
+                        </button>
+                    </div>
+                </form>
+
+                <form action="{{ url_for('admin.initiate_reset_all_codes', election_id=election.id) }}" method="POST"
+                    style="margin-top: 1rem;">
+                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                        onclick="return confirm('CRITICAL WARNING: This will invalidate ALL existing secret codes. Are you absolutely sure?');">
+                        Reset Secret Code for ALL Voters
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <form action="{{ url_for('admin.add_elector', election_id=election.id) }}" method="POST" class="form-group"
+                style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                {% if election.allow_phone_voting %}
+                <input type="tel" name="phone" placeholder="Phone (+91...)" style="flex: 1;">
+                {% endif %}
+                <input type="email" name="email" placeholder="Email (Optional)" style="flex: 1;">
+                <input type="text" name="name" placeholder="Name" required style="flex: 1;">
+                <button type="submit" class="btn btn-primary">Add</button>
+            </form>
+
+            <form action="{{ url_for('admin.import_electors', election_id=election.id) }}" method="POST"
+                enctype="multipart/form-data" class="form-group"
+                style="border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <label style="font-size: 0.875rem;">Import CSV ({% if election.allow_phone_voting %}phone, {% endif
+                        %}email, name)</label>
+                    <a href="{{ url_for('admin.export_electors', election_id=election.id) }}"
+                        class="btn btn-outline-dark btn-sm" style="margin-bottom: 0.5rem;">Export CSV</a>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="file" name="file" accept=".csv" required>
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                </div>
+            </form>
+
+
+            {% set pending_electors = election.electors | selectattr('status', 'equalto', 'pending') | list %}
+            {% if pending_electors %}
+            <div class="card mb-3" style="border-left: 5px solid var(--warning-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 class="mb-0">Pending Access Requests</h4>
+                    <input type="text" id="pendingRequestsSearch" class="form-control form-control-sm"
+                        style="width: 200px;" placeholder="Search Requests...">
+                </div>
+                <div style="max-height: 200px; overflow-y: auto;">
+                    <table id="pendingRequestsTable">
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                {% if election.allow_phone_voting %}<th>Phone</th>{% endif %}
+                                <th>Email</th>
+                                <th>Name</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for elector in pending_electors %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                {% if election.allow_phone_voting %}<td>{{ elector.phone or '-' }}</td>{% endif %}
+                                <td>{{ elector.email or '-' }}</td>
+                                <td>{{ elector.name }}</td>
+                                <td>
+                                    <a href="{{ url_for('admin.approve_elector_request', elector_id=elector.id) }}"
+                                        class="btn btn-success"
+                                        style="padding: 0.2rem 0.6rem; font-size: 0.8rem;">Approve</a>
+                                    <a href="{{ url_for('admin.reject_elector_request', elector_id=elector.id) }}"
+                                        class="btn btn-outline-danger"
+                                        style="padding: 0.2rem 0.6rem; font-size: 0.8rem;"
+                                        onclick="return confirm('Reject this request?')">Reject</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <div style="margin-top: 1rem;">
+                {% if election.electors %}
+                <form id="bulkDeleteForm" action="{{ url_for('admin.delete_electors_bulk', election_id=election.id) }}"
+                    method="POST">
+
+                    <div class="mb-2" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; gap: 0.5rem;">
+                            {% if election.status != 'completed' %}
+                            <button type="submit" id="deleteSelectedBtn" class="btn btn-danger btn-sm" disabled
+                                onclick="return confirm('Are you sure you want to delete selected electors? This action cannot be undone.');">Delete
+                                Selected</button>
+                            {% endif %}
+                            <button type="submit" id="exportSelectedBtn"
+                                formaction="{{ url_for('admin.export_electors', election_id=election.id) }}"
+                                class="btn btn-success btn-sm" disabled>
+                                Export Selected
+                            </button>
+                        </div>
+                        <input type="text" id="electorSearch" class="form-control form-control-sm" style="width: 250px;"
+                            placeholder="Search electors...">
+                    </div>
+
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table id="electorsTable">
+                            <thead style="position: sticky; top: 0; background-color: var(--card-bg); z-index: 10;">
+                                <tr>
+                                    <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
+                                    <th style="width: 50px;">S.No</th>
+                                    {% if election.allow_phone_voting %}<th>Phone</th>{% endif %}
+                                    <th>Email</th>
+                                    <th>Name</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set approved_electors = election.electors | selectattr('status', 'equalto',
+                                'approved') | list %}
+                                {% for elector in approved_electors %}
+                                <tr>
+                                    <td><input type="checkbox" name="elector_ids" value="{{ elector.id }}"
+                                            class="elector-checkbox"></td>
+                                    <td>{{ loop.index }}</td>
+                                    {% if election.allow_phone_voting %}<td>{{ elector.phone or '-' }}</td>{% endif %}
+                                    <td>{{ elector.email or '-' }}</td>
+                                    <td>{{ elector.name or '-' }}</td>
+                                    <td>
+                                        {% if elector.has_voted %}
+                                        <span class="badge completed" style="font-size: 0.75rem;">Voted</span>
+                                        {% else %}
+                                        <span class="badge draft" style="font-size: 0.75rem;">Pending Vote</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('admin.edit_elector', elector_id=elector.id) }}"
+                                            style="color: var(--primary-color); font-size: 0.875rem;">Edit</a>
+
+                                        {% if election.status != 'completed' %}
+                                        <button type="submit"
+                                            formaction="{{ url_for('admin.delete_elector', elector_id=elector.id) }}"
+                                            onclick="return confirm('Remove this elector?');"
+                                            style="background: none; border: none; cursor: pointer; color: var(--danger-color); font-size: 1rem;">&#128465;</button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+                {% else %}
+                <p>No electors added yet.</p>
+                {% endif %}
+            </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const selectAll = document.getElementById('selectAll');
+                    const checkboxes = document.querySelectorAll('.elector-checkbox');
+                    const deleteBtn = document.getElementById('deleteSelectedBtn');
+                    const exportBtn = document.getElementById('exportSelectedBtn');
+
+                    function updateButtonState() {
+                        const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+                        const count = Array.from(checkboxes).filter(cb => cb.checked).length;
+
+                        if (deleteBtn) {
+                            deleteBtn.disabled = !anyChecked;
+                            deleteBtn.innerText = anyChecked ? "Delete Selected (" + count + ")" : "Delete Selected";
+                        }
+                        if (exportBtn) {
+                            exportBtn.disabled = !anyChecked;
+                        }
+                    }
+
+                    if (selectAll) {
+                        selectAll.addEventListener('change', function () {
+                            // Only check visible checkboxes
+                            const visibleRows = Array.from(document.querySelectorAll('tbody tr')).filter(row => row.style.display !== 'none');
+                            const visibleCheckboxes = visibleRows.map(row => row.querySelector('.elector-checkbox')).filter(cb => cb);
+
+                            visibleCheckboxes.forEach(cb => cb.checked = selectAll.checked);
+                            updateButtonState();
+                        });
+                    }
+
+                    checkboxes.forEach(cb => {
+                        cb.addEventListener('change', function () {
+                            updateButtonState();
+                            if (!cb.checked && selectAll) selectAll.checked = false;
+                        });
+                    });
+
+                    // Reusable Table Search Function
+                    function setupTableSearch(inputId, tableId) {
+                        const input = document.getElementById(inputId);
+                        const table = document.getElementById(tableId);
+
+                        if (input && table) {
+                            input.addEventListener('input', function () {
+                                const filter = this.value.toLowerCase();
+                                const rows = table.querySelectorAll('tbody tr');
+
+                                rows.forEach(row => {
+                                    const text = row.innerText.toLowerCase();
+                                    row.style.display = text.indexOf(filter) > -1 ? "" : "none";
+                                });
+                            });
+                        }
+                    }
+
+                    // Initialize Search for all tables
+                    setupTableSearch('electorSearch', 'electorsTable'); // Fixed order
+                    setupTableSearch('nominationsSearch', 'nominationsTable');
+                    setupTableSearch('pendingRequestsSearch', 'pendingRequestsTable');
+
+                    // Nominations Checkbox Logic
+                    const selectAllNom = document.getElementById('selectAllNominations');
+                    const nomCheckboxes = document.querySelectorAll('.nomination-checkbox');
+                    const exportNomBtn = document.getElementById('exportNominationsBtn');
+
+                    function updateNomButtonState() {
+                        if (!exportNomBtn) return;
+                        const anyChecked = Array.from(nomCheckboxes).some(cb => cb.checked);
+                        exportNomBtn.disabled = !anyChecked;
+                    }
+
+                    if (selectAllNom) {
+                        selectAllNom.addEventListener('change', function () {
+                            nomCheckboxes.forEach(cb => cb.checked = selectAllNom.checked);
+                            updateNomButtonState();
+                        });
+                    }
+
+                    nomCheckboxes.forEach(cb => {
+                        cb.addEventListener('change', function () {
+                            updateNomButtonState();
+                            if (!cb.checked && selectAllNom) selectAllNom.checked = false;
+                        });
+                    });
+                });
+
+                function openDurationModal(title, actionUrl, defaultMinutes) {
+                    document.getElementById('durationModalLabel').innerText = title;
+                    document.getElementById('durationForm').action = actionUrl;
+                    document.getElementById('durationInput').value = defaultMinutes;
+                    new bootstrap.Modal(document.getElementById('durationModal')).show();
+                }
+            </script>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="durationModal" tabindex="-1" aria-hidden="true" style="display: none;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title" id="durationModalLabel">Start Phase</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="durationForm" method="POST">
+                <div class="modal-body p-4">
+                    <p class="mb-3 text-muted">You are about to trigger this phase immediately.</p>
+                    <div class="form-group">
+                        <label for="durationInput" class="form-label fw-bold">Duration (Minutes)</label>
+                        <div class="input-group">
+                            <input type="number" name="minutes" id="durationInput" class="form-control form-control-lg"
+                                required min="1">
+                            <span class="input-group-text">min</span>
+                        </div>
+                        <small class="text-muted">Currently active phase will be ended automatically.</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Start Now</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+{% endblock %}
